@@ -16,4 +16,7 @@ dependencies:
   - python=3.12
   - pip
   - pip:
-      - -e .[dev]
+      - -e .[dev] #includes the ML model families and quantum libraries.
+      # optional extras - uncomment the ones you want to install
+      # - -e .[quantum-hw] # For running on Quantum hardware
+      # - -e .[docs]      # For building the documentation
