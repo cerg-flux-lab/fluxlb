@@ -32,7 +32,7 @@ set -euo pipefail
 # ===== Config (EDIT THESE) =====
 OWNER="cerg-flux-lab"     # GitHub org or username
 REPO="fluxlb"         # repository name
-PROJECT_NUMBER=""         # Projects v2 number to add issues to; leave empty to skip
+PROJECT_NUMBER="1"         # Projects v2 number to add issues to; leave empty to skip
 DRY_RUN="${DRY_RUN:-0}"   # DRY_RUN=1 prints commands instead of running them
 CHECKLISTS_FILE="${CHECKLISTS_FILE:-docs/issue-checklists.md}"  # sub-task source; absent = skip appending
 # ================================
@@ -292,4 +292,6 @@ mkissue E5.10 "PDE foundation-model pretraining (multi-regime corpus)"          
 mkissue E5.11 "Fine-tune foundation model to hydrocyclone/particle regime"          "type:research,area:foundation,P2" L "E5.10"  "Adapt the pretrained model to the target regime."
 
 echo ">> Done."
-[[ -z "$PROJECT_NUMBER" ]] && echo "   (PROJECT_NUMBER was empty; issues created but not added to a Project board.)"
+if [[ -z "$PROJECT_NUMBER" ]]; then
+  echo "   (PROJECT_NUMBER was empty; issues created but not added to a Project board.)"
+fi
