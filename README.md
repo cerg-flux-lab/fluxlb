@@ -2,8 +2,11 @@
 
 **Differentiable, quantum-ready Lattice Boltzmann in PyTorch.**
 
-<!-- Badges (fill in once CI, PyPI, docs and licence are live) -->
-<!-- ![CI](...) ![PyPI](...) ![Docs](...) ![Licence](...) -->
+[![CI](https://github.com/cerg-flux-lab/fluxlb/actions/workflows/ci.yml/badge.svg)](https://github.com/cerg-flux-lab/fluxlb/actions/workflows/ci.yml)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](pyproject.toml)
+[![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-green.svg)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+<!-- Add PyPI and Docs badges once published. -->
 
 ## Overview
 
@@ -87,6 +90,8 @@ tests/                     # unit, regression (analytical), gradient checks, smo
 docs/                      # theory guide, API reference, tutorials
 examples/                  # runnable notebooks and scripts
 scripts/                   # SLURM templates, board automation
+.github/workflows/         # CI (ruff, mypy, smoke tests) and Claude PR assistant
+.pre-commit-config.yaml    # local ruff hooks; run `pre-commit install` once
 ```
 
 ## Roadmap

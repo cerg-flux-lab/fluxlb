@@ -1,0 +1,22 @@
+# Local hooks: run `pre-commit install` once after `pip install -e ".[dev]"`.
+# Ruff handles lint and format; mypy and pytest run in CI, not here, to keep commits fast.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]   # datasets and checkpoints never go in git (CLAUDE.md)
+      - id: no-commit-to-branch
+        args: ["--branch", "main"]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.7
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format

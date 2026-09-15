@@ -8,6 +8,7 @@ Thanks for your interest in contributing. This guide covers how to set up, the r
 git clone https://github.com/cerg-flux-lab/fluxlb.git fluxlb
 cd fluxlb
 pip install -e ".[dev]"
+pre-commit install   # ruff runs on every commit
 pytest -m smoke      # confirm your environment
 ```
 
@@ -24,6 +25,8 @@ pytest -m smoke      # confirm your environment
 5. Open a pull request describing what changed and why. Link the issue.
 
 ## Checks that must pass
+
+CI runs these on every push and pull request (CPU only). Run them locally first:
 
 ```bash
 pytest                          # tests, including regression vs analytical solutions
