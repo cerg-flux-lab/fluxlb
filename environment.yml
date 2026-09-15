@@ -17,3 +17,8 @@ dependencies:
   - pip
   - pip:
       - -e .[dev]
+      # optional extras - uncomment the ones you want to install
+      - -e ".[sciml]"      # ML model families
+      - -e ".[quantum]"    # Qiskit backend
+      - -e ".[quantum-hw]" # For running on Quantum hardware
+      - -e ".[docs]"       # For building the documentation
