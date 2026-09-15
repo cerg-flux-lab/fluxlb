@@ -4,7 +4,7 @@ A runbook for standing the repository up from the scaffold files and creating th
 
 ## 0. Prerequisites
 
-- `git` and Python 3.11+
+- `git` and Python 3.12+
 - GitHub CLI (`gh`), authenticated: `gh auth login`
 - Only if you will use a Projects (v2) board: `gh auth refresh -s project`
 

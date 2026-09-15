@@ -47,8 +47,9 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Physics",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Operating System :: OS Independent",
   "Typing :: Typed",
 ]
@@ -95,19 +96,18 @@ dev = [
   "jupyter",
 ]
 
-# Documentation build. Choose Sphinx or MkDocs and prune the other.
+# Documentation build (Sphinx).
 docs = [
   "sphinx>=7.3",
   "furo",
   "myst-parser",
   "sphinx-autodoc-typehints",
-  # "mkdocs-material", "mkdocstrings[python]",
 ]
 
 [project.urls]
 Homepage = "https://cerg-flux-lab.github.io/"
 Repository = "https://github.com/cerg-flux-lab/fluxlb"
-Documentation = "https://cerg-flux-lab.github.io/fluxlb/docs/"     
+Documentation = "https://cerg-flux-lab.github.io/fluxlb/"
 Issues = "https://github.com/cerg-flux-lab/fluxlb/issues"
 Changelog = "https://github.com/cerg-flux-lab/fluxlb/blob/main/CHANGELOG.md"
 
@@ -134,8 +134,8 @@ local_scheme = "no-local-version"
 # Ruff: lint + format
 # ---------------------------------------------------------------------------
 [tool.ruff]
-target-version = "py311"
-line-length = 100          # Confirm preferred line length
+target-version = "py312"
+line-length = 100
 src = ["fluxlb", "tests"]
 extend-exclude = ["docs/_build", "examples/_output"]
 
@@ -175,9 +175,9 @@ docstring-code-format = true
 # mypy
 # ---------------------------------------------------------------------------
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 packages = ["fluxlb"]
-strict = false             # tighten to true once the core stabilises
+strict = false
 warn_unused_ignores = true
 warn_redundant_casts = true
 warn_return_any = true
