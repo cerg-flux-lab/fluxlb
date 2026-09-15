@@ -45,7 +45,7 @@ jobs:
           cache-dependency-path: pyproject.toml
       - name: Install (CPU torch)
         run: |
-          pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install -e ".[dev]"
       - run: mypy fluxlb
 
@@ -67,6 +67,6 @@ jobs:
           cache-dependency-path: pyproject.toml
       - name: Install (CPU torch)
         run: |
-          pip install --index-url https://download.pytorch.org/whl/cpu torch torchvision
+          pip install --index-url https://download.pytorch.org/whl/cpu torch
           pip install -e ".[dev]"
       - run: pytest -m smoke
