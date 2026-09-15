@@ -1,0 +1,19 @@
+# Conda environment for fluxlb development.
+#
+#   mamba env create -f environment.yml      # or: conda env create -f environment.yml
+#   conda activate fluxlb
+#   pre-commit install
+#   pytest -m smoke
+#
+# Python is pinned to 3.12 to match CI. Everything else comes from pip via pyproject.toml so
+# there is one source of truth for versions. On the Mac, torch from PyPI uses MPS. On mjolnir
+# (CUDA), install torch first from the matching PyTorch index, then run the pip step:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu128
+name: fluxlb
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -e .[dev]

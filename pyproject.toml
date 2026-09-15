@@ -198,7 +198,6 @@ module = [
   "einops.*",
   "matplotlib.*",
   "torch_geometric.*",
-  "torchvision.*"
 ]
 ignore_missing_imports = true
 

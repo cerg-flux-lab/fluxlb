@@ -83,3 +83,6 @@ Thumbs.db
 *.pem
 *.key
 .secrets/
+
+# --- conda (local prefix envs) ---
+.conda/
