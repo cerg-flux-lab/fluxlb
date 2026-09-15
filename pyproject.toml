@@ -1,0 +1,244 @@
+# pyproject.toml for fluxlb
+#
+# Commands this file supports (see CLAUDE.md):
+#   pip install -e ".[dev]"
+#   pytest / pytest -m smoke
+#   ruff check . && ruff format .
+#   mypy fluxlb
+
+[build-system]
+requires = ["setuptools>=77", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+# ---------------------------------------------------------------------------
+# Project metadata
+# ---------------------------------------------------------------------------
+[project]
+name = "fluxlb"
+description = "Differentiable, quantum-ready Lattice Boltzmann in PyTorch"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.12"
+dynamic = ["version"]
+
+authors = [
+  { name = "Muaaz Bhamjee", email = "muaaz.bhamjee@up.ac.za" },
+  { name = "CERG-FLUX Lab (Fluids, Learning and Uncertainty in compleX systems)" },
+]
+maintainers = [
+  { name = "Muaaz Bhamjee", email = "muaaz.bhamjee@up.ac.za" },
+]
+
+keywords = [
+  "lattice Boltzmann",
+  "computational fluid dynamics",
+  "differentiable simulation",
+  "scientific machine learning",
+  "neural operators",
+  "quantum computing",
+  "PyTorch",
+]
+
+# Adjust Development Status as the project matures.
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
+]
+
+# Core runtime dependencies: the classical solver only. Keep this list small;
+# ML and quantum stacks live in extras. Heavy additions need discussion (CLAUDE.md).
+dependencies = [
+  "torch>=2.14",
+  "numpy>=2.0",
+]
+
+[project.optional-dependencies]
+# ML model families (fluxlb/sciml).
+sciml = [
+  "einops>=0.7",
+  "h5py>=3.10",
+  "zarr>=2.17",
+  "scipy>=1.14",
+  "tqdm>=4.66",
+  "torch_geometric>=2.6",  # for graph-based ML models
+  # "torchvision>=0.29",  # for image transforms and datasets
+  # "wandb",             # experiment tracking, if used
+]
+
+# Qiskit backend (fluxlb/quantum). Qiskit stays confined to this extra.
+quantum = [
+  "qiskit>=2.5.2",
+  "qiskit-aer>=0.17.2",
+]
+
+quantum-hw = [
+  "qiskit-ibm-runtime",
+]
+
+# Everything a contributor needs. Includes both tracks so the full suite runs.
+dev = [
+  "fluxlb[sciml,quantum]",
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "pre-commit>=3.7",
+  "matplotlib>=3.8",
+  "jupyter",
+]
+
+# Documentation build. Choose Sphinx or MkDocs and prune the other.
+docs = [
+  "sphinx>=7.3",
+  "furo",
+  "myst-parser",
+  "sphinx-autodoc-typehints",
+  # "mkdocs-material", "mkdocstrings[python]",
+]
+
+[project.urls]
+Homepage = "https://cerg-flux-lab.github.io/"
+Repository = "https://github.com/cerg-flux-lab/fluxlb"
+Documentation = "https://cerg-flux-lab.github.io/fluxlb/docs/"     
+Issues = "https://github.com/cerg-flux-lab/fluxlb/issues"
+Changelog = "https://github.com/cerg-flux-lab/fluxlb/blob/main/CHANGELOG.md"
+
+# [project.scripts]
+# fluxlb = "fluxlb.cli:main"   # uncomment if a CLI entry point is added
+
+# ---------------------------------------------------------------------------
+# Build: setuptools
+# ---------------------------------------------------------------------------
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fluxlb*"]
+exclude = ["tests*", "docs*", "examples*", "scripts*"]
+
+[tool.setuptools.package-data]
+fluxlb = ["py.typed"]
+
+[tool.setuptools_scm]
+# Version from git tags (e.g. v0.1.0). Remove this table if using a static version.
+version_scheme = "post-release"
+local_scheme = "no-local-version"
+
+# ---------------------------------------------------------------------------
+# Ruff: lint + format
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py311"
+line-length = 100          # Confirm preferred line length
+src = ["fluxlb", "tests"]
+extend-exclude = ["docs/_build", "examples/_output"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes
+  "I",        # isort
+  "UP",       # pyupgrade
+  "B",        # bugbear
+  "NPY",      # numpy-specific rules
+  "D",        # pydocstyle (docstrings explain physics/intent; see CLAUDE.md)
+  "RUF",      # ruff-specific
+]
+ignore = [
+  "D100", "D104",  # module / package docstrings not required everywhere
+  "D203", "D213",  # conflicting pydocstyle rules; keep D211/D212
+  "E741",          # ambiguous variable names: LBM notation uses single letters (f, u, rho)
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+"examples/**" = ["D"]
+"scripts/**" = ["D"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fluxlb"]
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.11"
+packages = ["fluxlb"]
+strict = false             # tighten to true once the core stabilises
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_return_any = true
+no_implicit_optional = true
+check_untyped_defs = true
+disallow_incomplete_defs = true
+show_error_codes = true
+pretty = true
+
+[[tool.mypy.overrides]]
+# Third-party packages without type stubs.
+module = [
+  "qiskit.*",
+  "qiskit_aer.*",
+  "h5py.*",
+  "zarr.*",
+  "scipy.*",
+  "einops.*",
+  "matplotlib.*",
+  "torch_geometric.*",
+  "torchvision.*"
+]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+xfail_strict = true
+filterwarnings = [
+  "error",
+  # add specific ignores for known upstream warnings (torch, qiskit) as they appear
+]
+markers = [
+  "smoke: fast per-family smoke tests (pytest -m smoke)",
+  "slow: long-running tests, skipped by default in CI",          # keep/remove
+  "gpu: requires a CUDA device",
+  "quantum: requires the [quantum] extra (Qiskit)",
+  "sciml: requires the [sciml] extra",
+  "regression: comparison against analytical solutions (Poiseuille, Taylor-Green)",
+  "gradcheck: finite-difference gradient checks on differentiable paths",
+  "conservation: mass and momentum conservation checks for collision operators",
+]
+
+# ---------------------------------------------------------------------------
+# Coverage
+# ---------------------------------------------------------------------------
+[tool.coverage.run]
+source = ["fluxlb"]
+branch = true
+omit = ["fluxlb/_version.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+  "@overload",
+]

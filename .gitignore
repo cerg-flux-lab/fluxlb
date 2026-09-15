@@ -1,0 +1,85 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# --- Packaging / build ---
+build/
+dist/
+*.egg-info/
+.eggs/
+fluxlb/_version.py
+
+# --- Environments ---
+.venv/
+venv/
+env/
+.env
+.python-version
+
+# --- Tooling caches ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+*.nbconvert.ipynb
+
+# --- Docs and examples output ---
+docs/_build/
+docs/api/_autosummary/
+examples/_output/
+site/
+
+# --- Datasets, checkpoints, large binaries (never commit; see CLAUDE.md) ---
+/data/
+/datasets/
+/checkpoints/
+/runs/
+/outputs/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.h5
+*.hdf5
+*.zarr/
+*.npy
+*.npz
+*.parquet
+*.vtk
+*.vti
+*.vtu
+
+# --- Experiment tracking ---
+wandb/
+mlruns/
+lightning_logs/
+tensorboard/
+
+# --- SLURM / cluster ---
+slurm-*.out
+slurm-*.err
+*.out
+*.err
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- Secrets ---
+*.pem
+*.key
+.secrets/

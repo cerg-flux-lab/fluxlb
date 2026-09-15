@@ -1,0 +1,8 @@
+fluxlb: Differentiable, quantum-ready Lattice Boltzmann in PyTorch
+Copyright 2026 Muaaz Bhamjee
+
+Developed in the CERG-FLUX Lab (Fluids, Learning and Uncertainty in compleX
+systems), Department of Mechanical and Aeronautical Engineering, University of
+Pretoria.
+
+Licensed under the Apache License, Version 2.0. See LICENSE.

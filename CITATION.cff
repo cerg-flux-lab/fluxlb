@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "fluxlb: Differentiable, quantum-ready Lattice Boltzmann in PyTorch"
+type: software
+authors:
+  - family-names: Bhamjee
+    given-names: Muaaz
+    orcid: "https://orcid.org/0000-0002-2697-4589"
+    affiliation: "University of Pretoria"
+  - name: "CERG-FLUX Lab (Fluids, Learning and Uncertainty in compleX systems)"
+repository-code: "https://github.com/cerg-flux-lab/fluxlb"
+url: "https://cerg-flux-lab.github.io/"
+version: "0.1.0"
+# date-released: 2026-01-01     # set on the first tagged release
+license: Apache-2.0
+keywords:
+  - lattice Boltzmann
+  - computational fluid dynamics
+  - differentiable simulation
+  - scientific machine learning
+  - neural operators
+  - quantum computing
+  - PyTorch

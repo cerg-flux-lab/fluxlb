@@ -1,0 +1,71 @@
+name: Research task
+description: A roadmap or research work item (matches the board issue shape).
+title: "[E?.?] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for planned work items. Type, area and priority (P0/P1/P2) are applied as labels after triage.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One or two sentences on what this delivers.
+    validations:
+      required: true
+  - type: input
+    id: epic
+    attributes:
+      label: Epic
+      description: Epic key and name.
+      placeholder: "E2.B Learned closures"
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort
+      options:
+        - "S (<= 3 days)"
+        - "M (1-2 weeks)"
+        - "L (3-6 weeks)"
+        - "XL (research-open)"
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - "P0 (blocker)"
+        - "P1 (core)"
+        - "P2 (nice-to-have)"
+    validations:
+      required: true
+  - type: input
+    id: deps
+    attributes:
+      label: Dependencies
+      description: Issue keys this is blocked by, comma-separated.
+      placeholder: "E2.5, E0.2"
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What must be true for this to be done.
+    validations:
+      required: true
+  - type: textarea
+    id: subtasks
+    attributes:
+      label: Sub-tasks
+      description: "Checklist. Mark scientific-logic decisions with [T1] (yours to own; see CLAUDE.md)."
+      value: |
+        - [ ] 
+        - [ ] **[T1]** 
+  - type: checkboxes
+    id: invariant
+    attributes:
+      label: Guardrail
+      options:
+        - label: This work does not fuse or bypass the collision interface (or the change to it is flagged for discussion).
+          required: true

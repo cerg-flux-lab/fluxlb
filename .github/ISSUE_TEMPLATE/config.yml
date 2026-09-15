@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://cerg-flux-lab.github.io/
+    about: Theory guide, API reference and tutorials.
+  - name: Questions and discussion
+    url: https://github.com/cerg-flux-lab/fluxlb/discussions
+    about: For usage questions and open-ended discussion, not bug reports.
