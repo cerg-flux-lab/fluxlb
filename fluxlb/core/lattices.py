@@ -217,21 +217,22 @@ class D2Q37(Lattice):
 
 
 # ---------------------------------------------------------------------------
-# 3D lattices. D3Q19 is the hydrodynamic stencil for the classical solver. D3Q27 is for
-# thermal and compressible solvers.
+# 3D lattices. D3Q19 is the hydrodynamic stencil for the classical solver.
+# D3Q27 is the full ``3x3x3`` stencil, which adds the eight corner velocities to D3Q19
+# and carries the third-order moments D3Q19 lacks.
 # ---------------------------------------------------------------------------
 
 
 class D3Q19(Lattice):
-    """Three-dimensional, nineteen-velocity lattice.
+    """Three-dimensional, nineteen-velocity lattice: the hydrodynamic stencil for 3D flow.
 
-    Velocity ordering: TODO(maintainer) state the ordering here (rest first, then the six
-    axis-aligned directions, then the twelve edge diagonals) and keep ``opp`` consistent
-    with it. The ordering is a contract: boundary code will index ``f`` by it.
+    Velocity ordering: rest particle first, then the six axis-aligned directions, then the
+    twelve edge (face-diagonal) directions. Within each group opposite pairs are adjacent
+    (``+x, -x, +y, -y, +z, -z``; then ``(1,1,0), (-1,-1,0), (1,-1,0), (-1,1,0)`` and so on
+    for the ``xz`` and ``yz`` planes). The ``opp`` table is valid only for this ordering.
 
-    Weights: TODO(maintainer) three distinct values for rest, axis and edge directions,
-    with ``cs2 = 1/3``. Check them against the moment identities in
-    ``tests/unit/test_lattices.py`` by adding this class to ``LATTICES`` there.
+    Weights are ``1/3`` (rest), ``1/18`` (axis) and ``1/36`` (edge); ``cs2 = 1/3``.
+    Isotropic to fourth order, which recovers isothermal Navier-Stokes.
     """
 
     Q = 19
@@ -240,25 +241,37 @@ class D3Q19(Lattice):
 
     def __init__(self, dtype: torch.dtype = torch.float32) -> None:
         """Build the D3Q19 constants in ``dtype`` (see :class:`Lattice`)."""
-        # c = torch.tensor([[]]
-        # TODO(maintainer): define c (int64, shape [19, 3]), w (float64, shape [19]) and
-        # opp (int64, shape [19]) here, then replace the raise with
-        #     super().__init__(c=c, w=w, opp=opp, cs2=1 / 3, dtype=dtype)
-        raise NotImplementedError("D3Q19 stencil not yet defined")
+        # fmt: off
+        c = torch.tensor([
+            (0, 0, 0),
+            (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1),
+            (1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0),
+            (1, 0, 1), (-1, 0, -1), (1, 0, -1), (-1, 0, 1),
+            (0, 1, 1), (0, -1, -1), (0, 1, -1), (0, -1, 1),
+        ], dtype=torch.int64)
+        opp = torch.tensor([
+            0,
+            2, 1, 4, 3, 6, 5,
+            8, 7, 10, 9,
+            12, 11, 14, 13,
+            16, 15, 18, 17,
+        ], dtype=torch.int64)
+        # fmt: on
+        w = torch.tensor([1 / 3] + [1 / 18] * 6 + [1 / 36] * 12, dtype=torch.float64)
+        super().__init__(c=c, w=w, opp=opp, cs2=1 / 3, dtype=dtype)
 
 
 class D3Q27(Lattice):
-    """Three-dimensional, twenty-seven-velocity lattice.
+    """Three-dimensional, twenty-seven-velocity lattice: the full ``3x3x3`` stencil.
 
-    Velocity ordering: TODO(maintainer) state the ordering here (rest first, then the six
-    axis-aligned directions, then the twelve edge diagonals, then the eight corner
-    diagonals) and keep ``opp`` consistent with it.
+    Velocity ordering: the D3Q19 ordering (rest, six axis, twelve edge directions), followed
+    by the eight corner (body-diagonal) directions, again with opposite pairs adjacent
+    (``(1,1,1), (-1,-1,-1), (1,1,-1), (-1,-1,1), ...``). The first nineteen entries coincide
+    with D3Q19. The ``opp`` table is valid only for this ordering.
 
-    Weights: TODO(maintainer) four distinct values for rest, axis, edge and corner
-    directions, with ``cs2 = 1/3``. D3Q27 is the full 3x3x3 stencil, so ``c`` can be
-    generated from a product over ``{-1, 0, 1}`` rather than typed out, provided the
-    rest velocity is moved to index 0 and ``opp`` is derived from ``c`` rather than
-    hand-written. Check against the moment identities as for D3Q19.
+    Weights are ``8/27`` (rest), ``2/27`` (axis), ``1/54`` (edge) and ``1/216`` (corner);
+    ``cs2 = 1/3``. Isotropic to fourth order like D3Q19, with the corner velocities adding
+    the third-order moments D3Q19 lacks.
     """
 
     Q = 27
@@ -267,7 +280,27 @@ class D3Q27(Lattice):
 
     def __init__(self, dtype: torch.dtype = torch.float32) -> None:
         """Build the D3Q27 constants in ``dtype`` (see :class:`Lattice`)."""
-        # TODO(maintainer): define c (int64, shape [27, 3]), w (float64, shape [27]) and
-        # opp (int64, shape [27]) here, then replace the raise with
-        #     super().__init__(c=c, w=w, opp=opp, cs2=1 / 3, dtype=dtype)
-        raise NotImplementedError("D3Q27 stencil not yet defined")
+        # fmt: off
+        c = torch.tensor([
+            (0, 0, 0),
+            (1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1),
+            (1, 1, 0), (-1, -1, 0), (1, -1, 0), (-1, 1, 0),
+            (1, 0, 1), (-1, 0, -1), (1, 0, -1), (-1, 0, 1),
+            (0, 1, 1), (0, -1, -1), (0, 1, -1), (0, -1, 1),
+            (1, 1, 1), (-1, -1, -1), (1, 1, -1), (-1, -1, 1),
+            (1, -1, 1), (-1, 1, -1), (-1, 1, 1), (1, -1, -1),
+        ], dtype=torch.int64)
+        opp = torch.tensor([
+            0,
+            2, 1, 4, 3, 6, 5,
+            8, 7, 10, 9,
+            12, 11, 14, 13,
+            16, 15, 18, 17,
+            20, 19, 22, 21,
+            24, 23, 26, 25,
+        ], dtype=torch.int64)
+        # fmt: on
+        w = torch.tensor(
+            [8 / 27] + [2 / 27] * 6 + [1 / 54] * 12 + [1 / 216] * 8, dtype=torch.float64
+        )
+        super().__init__(c=c, w=w, opp=opp, cs2=1 / 3, dtype=dtype)

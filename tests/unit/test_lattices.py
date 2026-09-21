@@ -13,7 +13,7 @@ import torch
 
 from fluxlb.core import gpu, lattices
 
-LATTICES = [lattices.D2Q5, lattices.D2Q9, lattices.D2Q37]
+LATTICES = [lattices.D2Q5, lattices.D2Q9, lattices.D2Q37, lattices.D3Q19, lattices.D3Q27]
 DTYPES = [torch.float32, torch.float64]
 TOL = {torch.float32: 1e-6, torch.float64: 1e-12}
 
