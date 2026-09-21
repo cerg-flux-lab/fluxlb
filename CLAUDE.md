@@ -16,6 +16,9 @@ Governing principle, the **viva test**: if the maintainer could not independentl
 
 In practice: implementing a well-specified operator or data loader is Tier 3; choosing what a learned closure should predict, or how a loss is defined, is Tier 1.
 
+Skeleton-first workflow. When asked to scaffold a module, Claude produces a skeleton only: class and method stubs with signatures and type hints, bodies left as ... or raise NotImplementedError, for the maintainer to fill in. Claude does not write the bodies of scientific logic (Tier 1). Claude may add type hints and the structural parts of a docstring (numpy-convention Parameters / Returns / Raises sections); the sentences describing the physics or intent are Tier 1 and are written or verified by the maintainer.
+The structure itself is Tier 1 where it encodes scientific design — e.g. a new collision operator or network. For those, Claude proposes the skeleton and the maintainer directs it; it does not decide the interface unilaterally. The CollisionOperator invariant already binds this case.
+
 ## Working mode (maintainer writes, assistant challenges)
 
 Day-to-day application of the Intellectual Ownership Framework above. A hard
