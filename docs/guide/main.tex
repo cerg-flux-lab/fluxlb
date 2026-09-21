@@ -1,21 +1,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Masters/Doctoral Thesis 
-% LaTeX Template
-% Version 2.5 (27/8/17)
+% fluxlb user guide
 %
-% This template was downloaded from:
-% http://www.LaTeXTemplates.com
+% Built on the Masters/Doctoral Thesis LaTeX template (LaTeXTemplates.com, v2.5,
+% CC BY-NC-SA 3.0) as adapted for the University of Pretoria; class file
+% fluxlbGuide.cls. Compile with:  latexmk -pdf main.tex   (biber for the bibliography)
 %
-% Version 2.x major modifications by:
-% Vel (vel@latextemplates.com)
-%
-% This template is based on a template by:
-% Steve Gunn (http://users.ecs.soton.ac.uk/srg/softwaretools/document/templates/)
-% Sunil Patel (http://www.sunilpatel.co.uk/thesis-template/)
-%
-% Template license:
-% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
-%
+% Authorship convention (see fluxlb/CLAUDE.md): implementation notes, tables and the
+% verification chapter are Tier 3 and drafted from the code. Theory prose is Tier 1 and is
+% marked with a "maintainer" box until the maintainer writes it. Do not remove a box
+% without replacing it with maintainer-authored text.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %----------------------------------------------------------------------------------------
@@ -23,57 +16,47 @@
 %----------------------------------------------------------------------------------------
 
 \documentclass[
-11pt, % The default document font size, options: 10pt, 11pt, 12pt
-oneside, % Two side (alternating margins) for binding by default, uncomment to switch to one side
-english, % ngerman for German
-onehalfspacing, % Single line spacing, options: singlespacing, onehalfspacing or doublespacing
-%draft, % Uncomment to enable draft mode (no pictures, no links, overfull hboxes indicated)
-nolistspacing, % If the document is onehalfspacing or doublespacing, uncomment this to set spacing in lists to single
-%liststotoc, % Uncomment to add the list of figures/tables/etc to the table of contents
-%toctotoc, % Uncomment to add the main table of contents to the table of contents
-parskip, % Uncomment to add space between paragraphs
-%nohyperref, % Uncomment to not load the hyperref package
-headsepline, % Uncomment to get a line under the header
-%chapterinoneline, % Uncomment to place the chapter title next to the number on one line
-% consistentlayout, % Uncomment to change the layout of the declaration, abstract and acknowledgements pages to match the default layout
-]{MastersDoctoralThesis} % The class file specifying the document structure
+11pt,
+oneside,
+english,
+onehalfspacing,
+%draft,
+nolistspacing,
+%liststotoc,
+%toctotoc,
+parskip,
+%nohyperref,
+headsepline,
+%chapterinoneline,
+%consistentlayout,
+]{fluxlbGuide}
 
-\usepackage[utf8]{inputenc} % Required for inputting international characters
-\usepackage[T1]{fontenc} % Output font encoding for international characters
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
 
 \usepackage[print-unity-mantissa=false, separate-uncertainty=true, separate-uncertainty-units=single, range-units=single]{siunitx}
-\usepackage[autostyle=true]{csquotes} % Required to generate language-dependent quotes in the bibliography
-\usepackage{mathpazo} % Use the Palatino font by default
-% \usepackage{bookmark}
+\usepackage[autostyle=true]{csquotes}
+\usepackage{mathpazo}
 
 \usepackage[font=footnotesize]{caption}
 
-\usepackage[backend=biber, style=ieee, eprint=false, citestyle=chem-angew, doi=true, maxbibnames=4]{biblatex}
-% \DefineBibliographyStrings{english}{andothers = {\upshape et al\adddot}}
-% \DefineBibliographyStrings{english}{phdthesis = {PhD thesis}}
-% \AtEveryBibitem{\ifentrytype{article}{\clearfield{url}\clearfield{issn}\clearfield{urlyear}}{}}
-% \AtEveryBibitem{\ifentrytype{book}{\clearfield{urlyear}}{}}
-% \AtEveryBibitem{\ifentrytype{incollection}{\clearfield{url}\clearfield{urlyear}}{}}
-% \AtEveryBibitem{\ifentrytype{inproceedings}{\clearfield{issn}\clearfield{isbn}
-% 		\clearfield{url}\clearfield{urlyear}}{}}
-% \AtEveryBibitem{\clearfield{day}}
-% \AtEveryBibitem{\clearfield{pagetotal}}
-\addbibresource{example.bib} % The filename of the bibliography
+\usepackage[backend=biber, style=ieee, eprint=false, doi=true, maxbibnames=6]{biblatex}
+\addbibresource{references.bib}
 
 \sisetup{range-phrase=--}
 
-% \setsecnumdepth{subsection}
-% \settocdepth{subsection}
+\usepackage{amsmath,amssymb} % before hyperref/cleveref, which require it
+
 \usepackage{hyperref}
 \hypersetup{
 	pdfpagemode={UseOutlines},
 	bookmarksopen=true,
 	bookmarksopenlevel=0,
 	hypertexnames=false,
-	colorlinks=false,% Set to false to disable coloring links
-	citecolor=magenta,% The color of citations
-	linkcolor=green,% The color of references to document elements (sections, figures, etc)
-	urlcolor=mdtRed,% The color of hyperlinks (URLs)
+	colorlinks=false,
+	citecolor=magenta,
+	linkcolor=green,
+	urlcolor=mdtRed,
 	pdfstartview={FitV},
 	unicode,
 	breaklinks=true,
@@ -83,48 +66,93 @@ headsepline, % Uncomment to get a line under the header
 \crefname{subappendix}{section}{sections}
 
 %----------------------------------------------------------------------------------------
+%	GUIDE-SPECIFIC PACKAGES AND MACROS
+%----------------------------------------------------------------------------------------
+
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+
+% Code listings
+\definecolor{codebg}{gray}{0.96}
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single, framerule=0pt, framesep=4pt,
+  breaklines=true, columns=fullflexible, keepspaces=true,
+  showstringspaces=false,
+}
+\lstdefinestyle{py}{language=Python}
+\lstdefinestyle{sh}{language=bash}
+
+% Tier 1 placeholder: theory prose the maintainer has yet to write.
+\newtcolorbox{maintainer}[1][]{
+  enhanced, breakable,
+  colback=orange!6, colframe=orange!75!black,
+  title={Tier 1 -- maintainer to write: #1},
+  fonttitle=\bfseries\small, coltitle=white,
+  left=2mm, right=2mm, top=1mm, bottom=1mm,
+}
+
+% Facts checked numerically against the code as it stands.
+\newtcolorbox{verified}{
+  enhanced, breakable,
+  colback=green!5, colframe=green!45!black,
+  title={Verified numerically}, fonttitle=\bfseries\small, coltitle=white,
+  left=2mm, right=2mm, top=1mm, bottom=1mm,
+}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\setlength{\emergencystretch}{3em} % narrow text block plus unhyphenatable code names
+\newcommand{\file}[1]{\texttt{\bfseries#1}}
+\newcommand{\vc}{\mathbf{c}}
+\newcommand{\vu}{\mathbf{u}}
+\newcommand{\cs}{c_s}
+
+%----------------------------------------------------------------------------------------
 %	MARGIN SETTINGS
 %----------------------------------------------------------------------------------------
 
 \geometry{
-	paper=a4paper, % Change to letterpaper for US letter
-	inner=2.5cm, % Inner margin
-	outer=3.8cm, % Outer margin
-	bindingoffset=.5cm, % Binding offset
-	top=1.5cm, % Top margin
-	bottom=1.5cm, % Bottom margin
-	%showframe, % Uncomment to show how the type block is set on the page
+	paper=a4paper,
+	inner=2.5cm,
+	outer=3.8cm,
+	bindingoffset=.5cm,
+	top=1.5cm,
+	bottom=1.5cm,
+	%showframe,
 }
 
 %----------------------------------------------------------------------------------------
-%	THESIS INFORMATION
+%	DOCUMENT INFORMATION
 %----------------------------------------------------------------------------------------
 
-\thesistitle{Thesis Title} % Your thesis title, this is used in the title and abstract, print it elsewhere with \ttitle
-\supervisor{Dr. James \textsc{Smith}} % Your supervisor's name, this is used in the title page, print it elsewhere with \supname
-\examiner{} % Your examiner's name, this is not currently used anywhere in the template, print it elsewhere with \examname
-\degree{Philosophiae Doctor} % Your degree name, this is used in the title page and abstract, print it elsewhere with \degreename
-\author{John \textsc{Smith}} % Your name, this is used in the title page and abstract, print it elsewhere with \authorname
-\addresses{} % Your address, this is not currently used anywhere in the template, print it elsewhere with \addressname
+\thesistitle{fluxlb User Guide}
+\supervisor{}
+\examiner{}
+\degree{}
+\author{Muaaz \textsc{Bhamjee}}
+\addresses{}
 
-\subject{Biological Sciences} % Your subject area, this is not currently used anywhere in the template, print it elsewhere with \subjectname
-\keywords{} % Keywords for your thesis, this is not currently used anywhere in the template, print it elsewhere with \keywordnames
-\university{\href{http://www.university.com}{University Name}} % Your university's name and URL, this is used in the title page and abstract, print it elsewhere with \univname
-\department{\href{http://department.university.com}{Department or School Name}} % Your department's name and URL, this is used in the title page and abstract, print it elsewhere with \deptname
-\group{\href{http://researchgroup.university.com}{Research Group Name}} % Your research group's name and URL, this is used in the title page, print it elsewhere with \groupname
-\faculty{\href{http://faculty.university.com}{Faculty Name}} % Your faculty's name and URL, this is used in the title page and abstract, print it elsewhere with \facname
+\subject{Computational Fluid Dynamics}
+\keywords{lattice Boltzmann, differentiable simulation, PyTorch, scientific machine learning, quantum computing}
+\university{\href{https://www.up.ac.za}{University of Pretoria}}
+\department{\href{https://www.up.ac.za/mechanical-and-aeronautical-engineering}{Department of Mechanical and Aeronautical Engineering}}
+\group{\href{https://cerg-flux-lab.github.io/}{CERG-FLUX Lab}}
+\faculty{\href{https://www.up.ac.za/faculty-of-engineering-built-environment-it}{Faculty of Engineering, Built Environment and Information Technology}}
 
 \AtBeginDocument{
-\hypersetup{pdftitle=\ttitle} % Set the PDF's title to your title
-\hypersetup{pdfauthor=\authorname} % Set the PDF's author to your name
-\hypersetup{pdfkeywords=\keywordnames} % Set the PDF's keywords to your keywords
+\hypersetup{pdftitle=\ttitle}
+\hypersetup{pdfauthor=\authorname}
+\hypersetup{pdfkeywords=\keywordnames}
 }
 
 \begin{document}
 
-\frontmatter % Use roman page numbering style (i, ii, iii, iv...) for the pre-content pages
+\frontmatter
 
-\pagestyle{plain} % Default to the plain heading style until the thesis style is called for the body content
+\pagestyle{plain}
 
 %----------------------------------------------------------------------------------------
 %	TITLE PAGE
@@ -136,25 +164,21 @@ headsepline, % Uncomment to get a line under the header
 		\vfill
 		{\Huge\textbf{\ttitle}\\}
 		\bigskip
-		{\large by\\}
-		\medskip
+		{\LARGE Differentiable, quantum-ready lattice Boltzmann in PyTorch\\}
+		\bigskip
+		{\Large Part I: device utilities, lattices and verification\\}
+		\bigskip
+		\bigskip
 		{\LARGE \textbf{\authorname}\\}
 		\bigskip
-		{\large Supervisor: \supname\\}
-		\bigskip
-		{\large Submitted in fulfillment of the requirements for the degree\\}
-		\medskip 
-		{\LARGE \textit{\degreename (\groupname)}\\}
-		\bigskip
-		{\large in the \deptname\\
-		\href{http://www.up.ac.za}{University of Pretoria}\\}
+		{\large \groupname\\
+		\deptname\\
+		\univname\\}
 		\bigskip
 		\bigskip
-		{\large \today\\}
+		{\large Draft of \today\\}
 		\bigskip
-		\bigskip
-		\bigskip
-		\bigskip
+		{\large \href{https://github.com/cerg-flux-lab/fluxlb}{github.com/cerg-flux-lab/fluxlb}\\}
 		\vfill
 		\includegraphics[width=0.25\textwidth]{uplogo.jpg}
 	\end{center}
@@ -165,82 +189,54 @@ headsepline, % Uncomment to get a line under the header
 %----------------------------------------------------------------------------------------
 
 \begin{abstract}
-	\addchaptertocentry{\abstractname} % Add the abstract to the table of contents
-	\noindent The Thesis Abstract is written here (and usually kept to just this page).
-	The page is kept centered vertically so can expand into the blank space above the title too\ldots
+	\addchaptertocentry{\abstractname}
+	\noindent \code{fluxlb} is a differentiable, quantum-ready lattice Boltzmann solver in
+	PyTorch. Streaming and collision are kept strictly separate, so the collision operator is
+	a swappable module: that single seam keeps the classical solver differentiable, lets
+	machine-learning closures drop in, and marks where a quantum collision operator can be
+	substituted.
+
+	This part of the guide documents what exists so far in \code{fluxlb.core}: the device and
+	precision utilities in \file{gpu.py}, the velocity sets in \file{lattices.py}, and the
+	tests that verify them. Each concept pairs its theory with its implementation. Theory
+	passages that have not yet been written by the maintainer are marked as such; facts that
+	were checked numerically against the code are marked too.
 \end{abstract}
-
-%----------------------------------------------------------------------------------------
-%	DECLARATION PAGE
-%----------------------------------------------------------------------------------------
-
-\begin{declaration}
-\addchaptertocentry{\authorshipname} % Add the declaration to the table of contents
-\noindent I, \authorname, declare that the dissertation, which I hereby submit for the degree \textit{\degreename} at the University of Pretoria, is my own work and has not previously been submitted by me for a degree at this or any other tertiary institution.
-
-\bigskip
-\bigskip
-
-\noindent Signed:\\
-\rule[0.5em]{25em}{0.5pt} % This prints a line for the signature
-\bigskip
-
-\noindent Date:\\
-\rule[0.5em]{25em}{0.5pt} % This prints a line to write the date
-\end{declaration}
-
-\cleardoublepage
-
-%----------------------------------------------------------------------------------------
-%	QUOTATION PAGE
-%----------------------------------------------------------------------------------------
-
-\vspace*{0.2\textheight}
-
-\noindent\enquote{\itshape Thanks to my solid academic training, today I can write hundreds of words on virtually any topic without possessing a shred of information, which is how I got a good job in journalism.}\bigbreak
-
-\hfill Dave Barry
-
-%----------------------------------------------------------------------------------------
-%	ACKNOWLEDGEMENTS
-%----------------------------------------------------------------------------------------
-
-\begin{acknowledgements}
-\addchaptertocentry{\acknowledgementname} % Add the acknowledgements to the table of contents
-The acknowledgments and the people to thank go here, don't forget to include your project advisor\ldots
-\end{acknowledgements}
 
 %----------------------------------------------------------------------------------------
 %	LIST OF CONTENTS/FIGURES/TABLES PAGES
 %----------------------------------------------------------------------------------------
 
-\tableofcontents % Prints the main table of contents
+\tableofcontents
 
-\listoffigures % Prints the list of figures
-
-\listoftables % Prints the list of tables
+\listoftables
 
 %----------------------------------------------------------------------------------------
 %	ABBREVIATIONS
 %----------------------------------------------------------------------------------------
 
-\begin{abbreviations}{ll} % Include a list of abbreviations (a table of two columns)
+\begin{abbreviations}{ll}
 
-\textbf{LAH} & \textbf{L}ist \textbf{A}bbreviations \textbf{H}ere\\
-\textbf{WSF} & \textbf{W}hat (it) \textbf{S}tands \textbf{F}or\\
+\textbf{LBM}   & \textbf{L}attice \textbf{B}oltzmann \textbf{M}ethod\\
+\textbf{DdQq}  & lattice with \textbf{d} spatial dimensions and \textbf{q} discrete velocities\\
+\textbf{CUDA}  & NVIDIA GPU compute platform\\
+\textbf{MPS}   & \textbf{M}etal \textbf{P}erformance \textbf{S}haders, Apple's GPU backend for PyTorch\\
+\textbf{VRAM}  & GPU memory\\
+\textbf{SLURM} & cluster workload manager used on the lab nodes\\
+\textbf{fp32, fp64} & IEEE single and double precision floating point\\
+\textbf{SciML} & \textbf{Sci}entific \textbf{M}achine \textbf{L}earning\\
 
 \end{abbreviations}
 
 %----------------------------------------------------------------------------------------
-%	PHYSICAL CONSTANTS/OTHER DEFINITIONS
+%	CONSTANTS
 %----------------------------------------------------------------------------------------
 
-\begin{constants}{lr@{${}={}$}l} % The list of physical constants is a three column table
+\begin{constants}{lr@{${}={}$}l}
 
-% The \SI{}{} command is provided by the siunitx package, see its documentation for instructions on how to use it
-
-Speed of Light & $c_{0}$ & \SI{2.99792458e8}{\meter\per\second} (exact)\\
-%Constant Name & $Symbol$ & $Constant Value$ with units\\
+D2Q37 Hermite scaling factor & $r$ & 1.19697977039307435897239\\
+D2Q37 reference temperature & $T_0 = 1/r^2$ & 0.697953322019683\\
+Lattice sound speed, standard lattices & $\cs^2$ & $1/3$\\
 
 \end{constants}
 
@@ -248,53 +244,47 @@ Speed of Light & $c_{0}$ & \SI{2.99792458e8}{\meter\per\second} (exact)\\
 %	SYMBOLS
 %----------------------------------------------------------------------------------------
 
-\begin{symbols}{lll} % Include a list of Symbols (a three column table)
+\begin{symbols}{lll}
 
-$a$ & distance & \si{\meter} \\
-$P$ & power & \si{\watt} (\si{\joule\per\second}) \\
-%Symbol & Name & Unit \\
+$Q$ & number of discrete velocities & \\
+$D$ & spatial dimension & \\
+$\vc_i$ & discrete velocity $i$, $i = 0,\dots,Q-1$ & lattice units \\
+$w_i$ & quadrature weight of velocity $i$ & \\
+$\cs^2$ & squared lattice sound speed & lattice units \\
+$\bar{i}$ & index of the velocity opposite to $i$, $\vc_{\bar{i}} = -\vc_i$ & \\
+$f_i$ & population (distribution) travelling with $\vc_i$ & \\
+$\langle g \rangle$ & weighted lattice sum $\sum_i w_i\, g(\vc_i)$ & \\
+$\Delta^{(2n)}$ & fully symmetric isotropic tensor of rank $2n$ & \\
 
-\addlinespace % Gap to separate the Roman symbols from the Greek
+\addlinespace
 
-$\omega$ & angular frequency & \si{\radian} \\
+$\rho$ & density & lattice units \\
+$\vu$ & velocity & lattice units \\
+$\delta_{\alpha\beta}$ & Kronecker delta & \\
 
 \end{symbols}
 
 %----------------------------------------------------------------------------------------
-%	DEDICATION
+%	CHAPTERS
 %----------------------------------------------------------------------------------------
 
-\dedicatory{For/Dedicated to/To my\ldots} 
+\mainmatter
 
-%----------------------------------------------------------------------------------------
-%	THESIS CONTENT - CHAPTERS
-%----------------------------------------------------------------------------------------
-
-\mainmatter % Begin numeric (1,2,3...) page numbering
-
-\pagestyle{thesis} % Return the page headers back to the "thesis" style
-
-% Include the chapters of the thesis as separate files from the Chapters folder
-% Uncomment the lines as you write the chapters
+\pagestyle{thesis}
 
 \include{Chapters/Chapter1}
-% \include{Chapters/Chapter2} 
-% \include{Chapters/Chapter3}
-% \include{Chapters/Chapter4} 
-% \include{Chapters/Chapter5} 
+\include{Chapters/Chapter2}
+\include{Chapters/Chapter3}
+\include{Chapters/Chapter4}
+\include{Chapters/Chapter5}
 
 %----------------------------------------------------------------------------------------
-%	THESIS CONTENT - APPENDICES
+%	APPENDICES
 %----------------------------------------------------------------------------------------
 
-\appendix % Cue to tell LaTeX that the following "chapters" are Appendices
-
-% Include the appendices of the thesis as separate files from the Appendices folder
-% Uncomment the lines as you write the Appendices
+\appendix
 
 \include{Appendices/AppendixA}
-% \include{Appendices/AppendixB}
-% \include{Appendices/AppendixC}
 
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
@@ -304,4 +294,4 @@ $\omega$ & angular frequency & \si{\radian} \\
 
 %----------------------------------------------------------------------------------------
 
-\end{document}  
+\end{document}

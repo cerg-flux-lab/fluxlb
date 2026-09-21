@@ -1,25 +1,50 @@
-% Appendix A
+% Appendix A: API reference
 
-\chapter{Frequently Asked Questions} % Main appendix title
+\chapter{API reference}
 
-\label{AppendixA} % For referencing this appendix elsewhere, use \ref{AppendixA}
+\label{AppendixA}
 
-\section{How do I change the colors of links?}
+\section{\code{fluxlb.core.gpu}}
 
-The color of links can be changed to your liking using:
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}p{0.5\linewidth}p{0.44\linewidth}@{}}
+\toprule
+Function & Purpose \\
+\midrule
+\code{get\_device()} & CUDA $>$ MPS $>$ CPU, or \code{FLUXLB\_DEVICE} override \\
+\code{resolve\_device(x)} & normalise device-like input \\
+\code{accumulation\_dtype(device)} & fp64, or fp32 with warning on MPS \\
+\code{get\_gpu\_count()}, \code{is\_gpu\_available()} & CUDA presence \\
+\code{get\_gpu\_info()}, \code{poll\_gpu\_status()} & per-GPU name and memory dictionaries \\
+\code{device\_summary(device)} & one-line host and device description \\
+\code{memory\_allocated}, \code{peak\_memory\_allocated}, \code{reset\_peak\_memory} & allocator counters \\
+\code{track\_memory(device)} & context manager yielding \code{MemoryReport} \\
+\code{clear\_gpu\_cache()} & GC then release cached memory \\
+\code{format\_bytes(n)} & bytes to string \\
+\code{synchronize(device)}, \code{Timer(device)} & synchronised timing \\
+\bottomrule
+\end{tabular}
+\caption{Public surface of \code{fluxlb.core.gpu}.}
+\end{table}
 
-{\small\verb!\hypersetup{urlcolor=red}!}, or
+\section{\code{fluxlb.core.lattices}}
 
-{\small\verb!\hypersetup{citecolor=green}!}, or
-
-{\small\verb!\hypersetup{allcolor=blue}!}.
-
-\noindent If you want to completely hide the links, you can use:
-
-{\small\verb!\hypersetup{allcolors=.}!}, or even better: 
-
-{\small\verb!\hypersetup{hidelinks}!}.
-
-\noindent If you want to have obvious links in the PDF but not the printed text, use:
-
-{\small\verb!\hypersetup{colorlinks=false}!}.
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}p{0.34\linewidth}p{0.6\linewidth}@{}}
+\toprule
+Name & Purpose \\
+\midrule
+\code{Lattice(c, w, opp, cs2, dtype)} & base \code{nn.Module}; validates shapes and
+  integer velocities, registers non-persistent buffers, builds \code{shifts} \\
+\code{Lattice.Q}, \code{.D}, \code{.isotropy\_order} & class attributes \\
+\code{Lattice.c}, \code{.w}, \code{.opp}, \code{.cs2} & buffers (\cref{tab:lattice-contents}) \\
+\code{Lattice.shifts} & list of $Q$ integer tuples for \code{torch.roll} \\
+\code{D2Q5(dtype)}, \code{D2Q9(dtype)}, \code{D2Q37(dtype)} & 2D lattices \\
+\code{D3Q19(dtype)}, \code{D3Q27(dtype)} & 3D lattices \\
+\code{D2Q37.R} & Hermite scaling factor $r$; \code{cs2 = 1 / R**2} \\
+\bottomrule
+\end{tabular}
+\caption{Public surface of \code{fluxlb.core.lattices}.}
+\end{table}

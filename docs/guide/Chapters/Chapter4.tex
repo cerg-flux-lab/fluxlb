@@ -1,0 +1,99 @@
+% Chapter 4: verification
+
+\chapter{Verification}
+
+\label{Chapter4}
+
+%----------------------------------------------------------------------------------------
+
+\section{Lattice identities checked by the tests}
+
+\file{tests/unit/test\_lattices.py} is parametrised over every implemented lattice and over
+fp32 and fp64. The tests assert
+\begin{align}
+\langle 1 \rangle &= 1, \\
+\langle c_\alpha \rangle = \langle c_\alpha c_\beta c_\gamma \rangle &= 0, \\
+\langle c_\alpha c_\beta \rangle &= \cs^2\,\delta_{\alpha\beta}, \\
+\langle c_\alpha c_\beta c_\gamma c_\delta \rangle &= \cs^4\,\Delta^{(4)}_{\alpha\beta\gamma\delta}
+  &&\text{if } \code{isotropy\_order} \ge 4, \\
+\langle c_{\alpha_1}\cdots c_{\alpha_5} \rangle = 0,\quad
+\langle c_{\alpha_1}\cdots c_{\alpha_6} \rangle &= \cs^6\,\Delta^{(6)}
+  &&\text{if } \code{isotropy\_order} \ge 6, \\
+\langle c_{\alpha_1}\cdots c_{\alpha_7} \rangle = 0,\quad
+\langle c_{\alpha_1}\cdots c_{\alpha_8} \rangle &= \cs^8\,\Delta^{(8)}
+  &&\text{if } \code{isotropy\_order} \ge 8,
+\end{align}
+where $\Delta^{(2n)}$ is the fully symmetric isotropic tensor, the sum over all pairings of
+the $2n$ indices of products of Kronecker deltas (3 terms at fourth order, 15 at sixth, 105
+at eighth). The test builds $\Delta^{(2n)}$ generically by enumerating pairings. Tolerances
+are in \cref{tab:tolerances}.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Identity & fp32 tolerance & fp64 tolerance \\
+\midrule
+orders 0--3 & $10^{-6}$ & $10^{-12}$ \\
+order 4     & $10^{-5}$ & $10^{-11}$ \\
+orders 5--6 & $10^{-4}$ & $10^{-10}$ \\
+orders 7--8 & $10^{-3}$ & $10^{-9}$ \\
+\bottomrule
+\end{tabular}
+\caption{Absolute tolerances. Higher orders involve $|\vc|^{8}$ up to $3^8$ for D2Q37, hence
+the looser bounds.}
+\label{tab:tolerances}
+\end{table}
+
+Further checks: \code{opp} is an int64 involution with $\vc_{\bar i} = -\vc_i$ and
+$w_{\bar i} = w_i$; velocities are distinct integers with the rest velocity first;
+\code{shifts} equals \code{c} as Python ints; constants are built in the requested dtype;
+fp64 constants differ from upcast fp32 ones; \code{.to(float64)} casts only the float
+buffers; the state dict is empty and there are no parameters; the module moves to the device
+\code{get\_device()} selects; D2Q5 fails fourth-order isotropy; D2Q37's second moment equals
+$1/r^2$; non-integer velocities and mismatched shapes raise \code{ValueError}. One CUDA-only
+test checks \code{f[opp]} indexing on the GPU.
+
+%----------------------------------------------------------------------------------------
+
+\section{Device utilities}
+
+\file{tests/unit/test\_gpu.py} covers device resolution and the environment override, both
+branches of \code{accumulation\_dtype}, the query functions, byte formatting, the memory
+no-ops on CPU, \code{track\_memory} on CPU, and \code{Timer}. Three tests carry the
+\code{gpu} marker and run only with CUDA: GPU info fields, peak-memory tracking, and the
+CUDA device summary.
+
+%----------------------------------------------------------------------------------------
+
+\section{Current status}
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+\code{pytest} (whole repository) & 173 passed, 42 skipped \\
+\code{ruff check}, \code{ruff format --check} & clean \\
+\code{mypy fluxlb} & clean (40 files) \\
+\bottomrule
+\end{tabular}
+\caption{Test and static-check status at the time of writing. Skips are the CUDA-only tests
+and the higher-order identities on lattices that do not claim them.}
+\end{table}
+
+%----------------------------------------------------------------------------------------
+
+\section{Adding a lattice}
+
+\begin{enumerate}[nosep]
+\item Subclass \code{Lattice}; set \code{Q}, \code{D}, \code{isotropy\_order}.
+\item In \code{\_\_init\_\_}, build \code{c} (int64), \code{w} (float64 from exact
+      fractions) and \code{opp} (int64, preferably derived from the velocity list), then call
+      \code{super().\_\_init\_\_(c=c, w=w, opp=opp, cs2=..., dtype=dtype)}.
+\item Wrap hand-laid-out tables in \code{\# fmt: off} / \code{\# fmt: on} so the formatter
+      keeps the shell layout.
+\item State the ordering convention in the docstring; \code{opp} and the boundary code depend
+      on it.
+\item Add the class to \code{LATTICES} in the test file. The isotropy tests will reject a
+      wrong weight or velocity immediately.
+\end{enumerate}

@@ -1,0 +1,16 @@
+# LaTeX build artefacts; Overleaf compiles its own copy
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+main.pdf
+*.bcf-SAVE-ERROR
