@@ -24,17 +24,6 @@ In practice: implementing a well-specified operator or data loader is Tier 3; ch
 
 **Streaming and collision are strictly separate. Collision is a swappable module behind `fluxlb/core/collision/base.py`.** This seam is what makes the solver differentiable and lets ML or quantum collision operators drop in. Never fuse streaming into collision, never bypass the `CollisionOperator` interface, and never break its signature without a deliberate, discussed change. Every new collision operator (classical, learned, or quantum) implements that interface.
 
-## Commands
-
-```bash
-pip install -e ".[dev]"        # install with dev extras
-pytest                          # full test suite
-pytest -m smoke                 # fast per-family smoke tests
-ruff check . && ruff format .   # lint and format
-mypy fluxlb                   # type check
-sbatch scripts/train.slurm      # submit a training run on the cluster
-```
-
 ## Conventions
 
 - **Differentiability.** Keep tensor ops autograd-safe. Avoid in-place ops on tensors that require grad. Do not call `.item()`, `.numpy()`, or `.detach()` inside a differentiable path. Long rollouts use `torch.utils.checkpoint`; do not remove checkpointing to "simplify".
@@ -55,15 +44,6 @@ sbatch scripts/train.slurm      # submit a training run on the cluster
 - Primary node **mjolnir**: RTX A2000 Ada, 16 GB VRAM, weak fp64. Design memory-aware: gradient checkpointing, mixed precision, streaming data, factorised operators for 3D.
 - SLURM nodes are **standalone** (no working cross-node fabric). Do **not** assume multi-node distributed training or DDP across nodes; target per-node runs.
 - The foundation-model pretraining task (roadmap E5.10) is compute-gated and needs external HPC. Do not schedule it against the homelab.
-
-## Repository map
-
-- `fluxlb/core/` classical solver (lattices, equilibrium, streaming, collision, boundaries, solver)
-- `fluxlb/sciml/` ML model families
-- `fluxlb/quantum/` Qiskit backend and Carleman/hybrid closures
-- `fluxlb/data/` dataset generation, IO, loaders
-- `fluxlb/eval/` metrics, benchmarks, leaderboard
-- `tests/`, `docs/`, `examples/`, `scripts/`
 
 ## Do not
 

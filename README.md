@@ -16,7 +16,7 @@
 
 **What differentiability buys.** Because the whole collide-stream-boundary loop is traceable by autograd, gradients flow from any output back to any input: the relaxation time, boundary values, initial conditions, or the weights of a learned closure. Inverse problems, closures trained through the solver, and data assimilation therefore become direct uses of the solver rather than separate tooling.
 
-**Quantum scope.** The same Python-native design lets the quantum track develop inside the solver rather than beside it: streaming as a permutation unitary, Carleman linearisation of the collision step, and hybrid variational closures, all entering through the collision interface. "Quantum-ready" means the seam and simulator-scale implementations exist; it does not mean hardware-scale flow simulation today. 
+**Quantum scope.** The same Python-native design lets the quantum track develop inside the solver rather than beside it: streaming as a permutation unitary, Carleman linearisation of the collision step, and hybrid variational closures, all entering through the collision interface. "Quantum-ready" means the seam and simulator-scale implementations exist; it does not mean hardware-scale flow simulation today.
 
 <!-- Later, once there is something to compare: a 'Where it sits' paragraph positioning fluxlb against lettuce (PyTorch), XLB (JAX) and Palabos. -->
 
@@ -48,6 +48,18 @@ pip install -e ".[quantum-hw]" # For running on Quantum hardware
 pip install -e ".[docs]"       # For building the documentation
 ```
 
+### Device selection
+
+`fluxlb.core.gpu` holds the device, memory and timing helpers, so the same script runs unchanged on a CUDA node, an Apple laptop (MPS) and a plain CPU.
+
+- `get_device()` picks the first available of CUDA, MPS and CPU. Set `FLUXLB_DEVICE` (for example `cpu` or `cuda:1`) to pin the device from a SLURM script; an override naming an unavailable backend raises rather than silently falling back.
+- `accumulation_dtype()` returns the dtype for accumulating conserved moments: fp64 on CUDA and CPU, fp32 on MPS (which has no float64) with a warning.
+- `get_gpu_info()` and `poll_gpu_status()` report name, total memory and allocated/reserved memory per GPU; `device_summary()` gives a one-line host and device description to print at the top of every job log.
+- `track_memory()` reports peak and net allocation for a block, and `peak_memory_allocated()` / `reset_peak_memory()` expose the counters directly. Use them to size gradient checkpointing and batch dimensions against 16 GB of VRAM.
+- `Timer` and `synchronize()` give wall-clock timings that include the GPU work, not just the kernel launches. `clear_gpu_cache()` releases cached allocator memory between runs.
+
+On a CUDA node, install `torch` from the matching PyTorch index before the editable install (see `environment.yml`).
+
 ## Quickstart (target API)
 
 ```python
@@ -62,7 +74,7 @@ solver = flb.LBMSolver(
     differentiable=False,
 )
 
-f = solver.initialise(device="cuda", dtype=torch.float32)
+f = solver.initialise(device=flb.gpu.get_device(), dtype=torch.float32)
 f = solver.run(f, n_steps=20_000)
 rho, u = solver.moments(f)
 ```
@@ -74,6 +86,7 @@ Switch `differentiable=True` to backpropagate through the solve (see `examples/i
 ```
 fluxlb/
   core/
+    gpu.py                 # device selection (CUDA/CPU) and GPU memory helpers
     lattices.py            # velocity sets, weights, sound speed
     equilibrium.py         # f_eq
     streaming.py           # streaming (permutation) operator
@@ -141,4 +154,3 @@ During development, the following AI-assisted tools were used to support product
 These AI tools provided assistance only. All code and research outputs are authored solely by **Muaaz Bhamjee**. AI tools assisted with implementation; `Co-Authored-By` trailers are not used because AI tools are not authors and hold no IP; all authorship remains with the project maintainers. Whilst AI use is encouraged to improve quality, understanding should not be delegated to AI.
 
 This statement is provided to clarify licensing, attribution, and the role of AI in the development of this project.
-
