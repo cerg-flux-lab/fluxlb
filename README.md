@@ -134,6 +134,10 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md). One rule dominates: **do not fuse stre
 
 Copyright 2026 Muaaz Bhamjee. Released under the [Apache License 2.0](LICENSE). See [`NOTICE`](NOTICE) for attribution.
 
+## Warranty
+
+No warranty. fluxlb is provided "as is", without warranty or condition of any kind, express or implied, including any warranty of merchantability, fitness for a particular purpose, or non-infringement. You bear all risk of using it. See the Apache License 2.0 for the full terms.
+
 ## Acknowledgements
 
 Developed in the **CERG-FLUX Lab (Fluids, Learning and Uncertainty in compleX systems)**, University of Pretoria. GitHub: [github.com/cerg-flux-lab](https://github.com/cerg-flux-lab). Lab site: [cerg-flux-lab.github.io](https://cerg-flux-lab.github.io/).
