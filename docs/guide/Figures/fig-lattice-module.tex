@@ -1,0 +1,35 @@
+% A Lattice is an nn.Module: buffers travel with .to(device, dtype); shifts stay on the host.
+\begin{tikzpicture}[
+  >={Stealth[length=2mm]},
+  buf/.style={draw, rounded corners=2pt, font=\small\ttfamily, inner sep=4pt, minimum width=30mm, align=left},
+  fbuf/.style={buf, fill=blue!7, draw=blue!60!black},
+  ibuf/.style={buf, fill=purple!7, draw=purple!60!black},
+  host/.style={buf, fill=gray!8, draw=gray!60, dashed},
+  note/.style={font=\scriptsize, gray!80!black, align=left},
+  arr/.style={->, line width=0.9pt},
+]
+% module box
+\node[draw, rounded corners=3pt, fill=white, minimum width=44mm, minimum height=42mm, anchor=north west] (mod) at (0,0) {};
+\node[anchor=north west, font=\small\bfseries, inner sep=4pt] at (mod.north west) {D2Q9(Lattice) : nn.Module};
+\node[fbuf, anchor=north west] (c)   at ($(mod.north west)+(0.35,-0.75)$) {c \quad [Q, D] \quad float};
+\node[fbuf, below=1.5mm of c.south west, anchor=north west] (w)   {w \quad [Q] \quad float};
+\node[fbuf, below=1.5mm of w.south west, anchor=north west] (cs2) {cs2 \quad [] \quad float};
+\node[ibuf, below=1.5mm of cs2.south west, anchor=north west] (opp) {opp \quad [Q] \quad int64};
+\node[note, anchor=south west] at ($(mod.south west)+(0.2,0.08)$) {buffers, persistent=False};
+
+% host attribute
+\node[host, anchor=north west] (sh) at ($(mod.north east)+(1.6,-0.75)$) {shifts : list[tuple[int, ...]]};
+\node[note, anchor=north west, text width=3.6cm] at ($(sh.south west)+(0,-0.15)$)
+  {plain Python; read by \code{torch.roll} without a device sync};
+
+% .to arrow
+\node[draw, rounded corners=2pt, fill=green!8, draw=green!50!black, font=\small\ttfamily, anchor=north west]
+  (to) at ($(mod.south west)+(0,-0.9)$) {lattice.to(device, dtype)};
+\draw[arr, green!50!black] (to.east) -- ++(0.5,0) |- node[pos=0.75, note, above] {moves and casts float buffers} (c.east);
+\draw[arr, green!50!black] (to.east) ++(0.5,0) |- (w.east);
+\draw[arr, green!50!black] (to.east) ++(0.5,0) |- (cs2.east);
+\draw[arr, purple!60!black] (to.east) ++(0.5,0) |- node[pos=0.8, note, below] {moves only; stays int64} (opp.east);
+
+\node[note, anchor=north west, text width=4.4cm] at ($(to.south west)+(0,-0.15)$)
+  {\code{state\_dict()} is empty: constants are rebuilt from the class, never loaded from a checkpoint.};
+\end{tikzpicture}

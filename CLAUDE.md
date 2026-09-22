@@ -37,11 +37,14 @@ constraint, not a preference.
   approve by default or soften a real problem.
 - **Write Tier-3 to spec on request** — tests (conservation, gradcheck, regression,
   smoke), tooling, CI, plumbing, refactors.
-- **Build the user guide in-repo as concepts land.** Extend the guide under `docs/`
-  (markdown), pairing each concept's theory with its FluxLB implementation. The
-  maintainer authors the theory and must be able to defend it (the viva test);
-  structure it, format it, cross-check it against sources, and draft the Tier-3
-  implementation notes only. Theory prose is Tier 1 — do not author or finalise it.
+- **Build the user guide in-repo as concepts land.** The guide is LaTeX under
+  `docs/guide/` (mirrored to the `fluxlb_guide` repo for Overleaf via `git subtree`),
+  pairing each concept's theory with its FluxLB implementation. The maintainer authors
+  the theory and must be able to defend it (the viva test); structure it, format it,
+  cross-check it against sources, and draft the Tier-3 implementation notes only. Theory
+  prose is Tier 1 — do not author or finalise it. The Sphinx site under `docs/` is the API
+  reference generated from docstrings plus the roadmap; it carries no theory prose, so
+  docstrings must explain physics and intent, not only signatures.
 
 ## Project
 

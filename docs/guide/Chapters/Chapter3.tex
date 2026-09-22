@@ -9,17 +9,93 @@ are implemented: D2Q5, D2Q9, D2Q37, D3Q19 and D3Q27.
 
 %----------------------------------------------------------------------------------------
 
-\section{Theory}
+\section{Theory}\label{sec:lattice-theory}
 
-\begin{maintainer}[discrete velocity sets and the quadrature view]
-Derive or motivate the discrete velocity sets: the Hermite expansion of the
-Maxwell--Boltzmann distribution, Gauss--Hermite quadrature on a lattice, and why the weights
-$w_i$ and sound speed $\cs^2$ follow from requiring the discrete moments to match the
-continuous ones up to a chosen order. State which moment orders are needed to recover
-(i) advection--diffusion, (ii) isothermal Navier--Stokes and (iii) the energy equation, and
-connect each to the \code{isotropy\_order} attribute of \cref{sec:lattice-impl}. Cite the
-sources you have read \parencite{Philippi2006,Sbragaglia2009,Kruger2017}.
-\end{maintainer}
+\begin{draft}[discrete velocity sets as Gauss--Hermite quadratures]
+The lattice Boltzmann method discretises the Boltzmann equation with the BGK collision
+operator \parencite{BGK1954,QianHumieresLallemand1992,HeLuo1997} in velocity space first and
+in space and time second. The velocity discretisation is a quadrature: the hydrodynamic
+moments of the distribution $f(\boldsymbol{\xi})$ are integrals of $f$ against polynomials
+in the particle velocity $\boldsymbol{\xi}$, and the discrete velocities $\vc_i$ with weights
+$w_i$ are chosen so that a finite sum reproduces those integrals exactly for polynomials up
+to some degree.
+
+\paragraph{Hermite expansion.}
+Following \textcite{Grad1949} and \textcite{ShanYuanChen2006}, expand $f$ in Hermite
+polynomials $\mathcal{H}^{(n)}$ orthogonal with respect to the Gaussian weight
+\[
+\omega(\boldsymbol{\xi}) = (2\pi\theta)^{-D/2}\exp\!\big(-\xi^2/2\theta\big),
+\qquad
+f(\boldsymbol{\xi}) = \omega(\boldsymbol{\xi})\sum_{n=0}^{\infty}\frac{1}{n!}\,
+\mathbf{a}^{(n)}\!\cdot\mathcal{H}^{(n)}(\boldsymbol{\xi}),
+\]
+where $\theta$ is a reference temperature and the coefficients $\mathbf{a}^{(n)}$ are
+the moments of $f$. Truncating at order $N$ keeps exactly the moments that enter the
+macroscopic equations of interest: $N=2$ for isothermal Navier--Stokes at the level of the
+momentum flux, $N=3$ to include the heat flux, $N=4$ for the energy equation with a correct
+heat flux. Because the truncated $f$ is $\omega$ times a polynomial of degree $N$, every
+moment of order $m \le N$ is an integral of $\omega$ times a polynomial of degree $\le 2N$.
+
+\paragraph{Quadrature and isotropy.}
+A Gauss--Hermite quadrature with abscissae $\boldsymbol{\xi}_i$ and weights $w_i$ that is
+exact for polynomials of degree $\le 2N$ therefore reproduces all moments up to order $N$ of
+the truncated distribution. Exactness for degree $\le 2N$ is equivalent to the discrete
+velocities reproducing the Gaussian moments
+\begin{equation}
+\sum_i w_i\, \xi_{i\alpha_1}\cdots\xi_{i\alpha_m}
+= \int \omega\,\xi_{\alpha_1}\cdots\xi_{\alpha_m}\,d^D\xi
+=
+\begin{cases}
+0, & m \text{ odd},\\
+\theta^{m/2}\,\Delta^{(m)}_{\alpha_1\cdots\alpha_m}, & m \text{ even},
+\end{cases}
+\quad m \le 2N,
+\label{eq:gaussian-moments}
+\end{equation}
+where $\Delta^{(m)}$ is the sum over all pairings of the indices of products of Kronecker
+deltas. These are exactly the isotropy identities checked in \cref{Chapter4}, with
+$\theta = \cs^2$. The \code{isotropy\_order} attribute records the largest even $m$ for
+which \cref{eq:gaussian-moments} holds.
+
+\paragraph{From abscissae to a lattice.}
+For the streaming step to be exact, the abscissae must form a space-filling lattice: after
+a common rescaling $\vc_i = \boldsymbol{\xi}_i / r$ every $\vc_i$ must be an integer vector,
+so that a population moves from one node to another in one time step. In lattice units
+($\Delta x = \Delta t = 1$) the reference temperature becomes $\cs^2 = \theta / r^2$. The
+one-dimensional three-point Gauss--Hermite rule has abscissae $0,\pm\sqrt{3\theta}$ with
+weights $2/3, 1/6, 1/6$ and is exact to degree~5; its tensor product in two dimensions is
+D2Q9 with $r = \sqrt{3\theta}$, hence $\cs^2 = 1/3$ and weights $4/9$, $1/9$, $1/36$. D3Q27
+is the same product in three dimensions; D3Q19 drops the eight corner abscissae and
+redistributes weight while keeping degree-5 exactness, hence fourth-order isotropy
+\parencite{QianHumieresLallemand1992,Kruger2017}.
+
+\paragraph{What each order buys.}
+\Cref{fig:ladder} summarises the correspondence.
+\begin{itemize}[nosep]
+\item \textbf{Order 2} (D2Q5). Scalar transport. The advection--diffusion equation needs
+      only the first moment of the equilibrium (the advective flux) and second-order isotropy
+      for the diffusive flux, giving diffusivity $\kappa = \cs^2(\tau - \tfrac12)$.
+\item \textbf{Order 4} (D2Q9, D3Q19, D3Q27). Isothermal Navier--Stokes. The Chapman--Enskog
+      expansion recovers the Newtonian viscous stress from the second-order equilibrium
+      moment $\Pi^{\mathrm{eq}}_{\alpha\beta} = \rho\cs^2\delta_{\alpha\beta} + \rho u_\alpha
+      u_\beta$ only if $\sum_i w_i c_{i\alpha}c_{i\beta}c_{i\gamma}c_{i\delta} = \cs^4
+      \Delta^{(4)}$; kinematic viscosity $\nu = \cs^2(\tau - \tfrac12)$. The third-order
+      equilibrium moment is truncated, which is the source of the $O(u^3)$ error of the
+      standard lattices.
+\item \textbf{Order 8} (D2Q37). Thermal and compressible flow. A fourth-order Hermite
+      equilibrium with a variable temperature requires quadrature exact to degree~9,
+      which fixes the energy flux and heat flux without ad hoc corrections
+      \parencite{Philippi2006,ShanYuanChen2006,Sbragaglia2009}.
+\end{itemize}
+\end{draft}
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-isotropy-ladder}\end{adjustbox}
+\caption{Isotropy order against the physics it supports, with the implemented lattices placed
+on the ladder.}
+\label{fig:ladder}
+\end{figure}
 
 %----------------------------------------------------------------------------------------
 
@@ -27,8 +103,8 @@ sources you have read \parencite{Philippi2006,Sbragaglia2009,Kruger2017}.
 
 A lattice is an \code{nn.Module} that holds constants and no computation. The base class
 \code{Lattice} registers four non-persistent buffers and one plain attribute, listed in
-\cref{tab:lattice-contents}. Class attributes \code{Q}, \code{D} and \code{isotropy\_order}
-are integers.
+\cref{tab:lattice-contents} and sketched in \cref{fig:module}. Class attributes \code{Q},
+\code{D} and \code{isotropy\_order} are integers.
 
 \begin{table}[h]
 \centering\small
@@ -46,6 +122,15 @@ Name & Shape & Dtype & Role \\
 \caption{Contents of a \code{Lattice}.}
 \label{tab:lattice-contents}
 \end{table}
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-lattice-module}\end{adjustbox}
+\caption{A lattice as an \code{nn.Module}. One \code{.to()} call carries the buffers to the
+device and casts the floating-point ones; the integer index table and the host-side shift
+list are unaffected by the cast.}
+\label{fig:module}
+\end{figure}
 
 \paragraph{Why buffers.}
 \code{register\_buffer} makes the constants follow \code{.to(device, dtype)} together with
@@ -100,46 +185,53 @@ D3Q27 & 27 & 3 & 4 & $1/3$   & 4 & isothermal flow, full stencil \\
 \label{tab:catalogue}
 \end{table}
 
-\subsection{D2Q5}
+\subsection{D2Q5 and D2Q9}
 
-Rest, then the four axis directions anticlockwise from $+x$:
+D2Q5 is the rest particle and the four axis directions anticlockwise from $+x$; D2Q9 adds
+the four diagonals anticlockwise from $(1,1)$ (\cref{fig:d2q9}):
 \[
-(0,0),\ (1,0),(0,1),(-1,0),(0,-1).
+(0,0),\ (1,0),(0,1),(-1,0),(0,-1),\ \underbrace{(1,1),(-1,1),(-1,-1),(1,-1)}_{\text{D2Q9 only}}.
 \]
-Weights $1/3$ (rest) and $1/6$ (axis); $\code{opp} = [0,3,4,1,2]$.
+D2Q5 weights are $1/3$ (rest) and $1/6$ (axis), with $\code{opp} = [0,3,4,1,2]$. D2Q9 weights
+are $4/9$, $1/9$ (axis) and $1/36$ (diagonal), with $\code{opp} = [0,3,4,1,2,7,8,5,6]$.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-d2q5-d2q9}\end{adjustbox}
+\caption{D2Q5 and D2Q9 velocity sets with the index convention used in the code. Colour
+marks the weight class. D2Q5 is D2Q9 without the diagonals, which is exactly what it loses
+at fourth order.}
+\label{fig:d2q9}
+\end{figure}
 
 \begin{verified}
-Normalised; second moment equals $\tfrac{1}{3}\delta_{\alpha\beta}$; fourth-order isotropy
-fails with maximum error $0.11$. Declared \code{isotropy\_order = 2}.
-\end{verified}
-
-\begin{maintainer}[why D2Q5 is restricted to scalar transport]
-State what the missing fourth-order isotropy means for the viscous stress and hence why the
-lattice can carry a temperature or concentration field coupled to a D2Q9 flow but not the
-flow itself.
-\end{maintainer}
-
-\subsection{D2Q9}
-
-Rest, then the four axis directions anticlockwise from $+x$, then the four diagonals
-anticlockwise from $(1,1)$:
-\[
-(0,0),\ (1,0),(0,1),(-1,0),(0,-1),\ (1,1),(-1,1),(-1,-1),(1,-1).
-\]
-Weights $4/9$, $1/9$ (axis), $1/36$ (diagonal). $\code{opp} = [0,3,4,1,2,7,8,5,6]$.
-
-\begin{verified}
-Normalised to rounding; first and third moments vanish; second moment
+\textbf{D2Q5}: normalised; second moment $\tfrac{1}{3}\delta_{\alpha\beta}$; fourth-order
+isotropy fails with maximum error $0.11$; \code{isotropy\_order = 2}.
+\textbf{D2Q9}: normalised to rounding; first and third moments vanish; second moment
 $\tfrac13\delta_{\alpha\beta}$; fourth-order isotropy holds to $3\times10^{-8}$ in fp32 and
-$6\times10^{-17}$ in fp64; sixth order fails. Declared \code{isotropy\_order = 4}.
+$6\times10^{-17}$ in fp64; sixth order fails; \code{isotropy\_order = 4}.
 \end{verified}
+
+\begin{draft}[why D2Q5 is restricted to scalar transport]
+D2Q5 has no diagonal velocities, so $\sum_i w_i c_{ix}^2 c_{iy}^2 = 0$ whereas fourth-order
+isotropy requires $\cs^4 = 1/9$. The equilibrium second moment $\rho\cs^2\delta_{\alpha\beta}
++ \rho u_\alpha u_\beta$ therefore cannot be represented: the off-diagonal $\rho u_x u_y$
+term has no velocity to carry it, and the Chapman--Enskog stress acquires an anisotropic,
+non-Newtonian error. The lattice cannot carry the flow. For a passive scalar $C$ (temperature
+or concentration) advected by a velocity field supplied by a D2Q9 solve, the equilibrium
+$g_i^{\mathrm{eq}} = w_i C\,(1 + \vc_i\cdot\vu/\cs^2)$ needs only the zeroth and first
+moments to be exact, and the diffusive flux needs only second-order isotropy. Both hold,
+giving the advection--diffusion equation with $\kappa = \cs^2(\tau_g - \tfrac12)$
+\parencite{Kruger2017}. This is why the lattice is classed as scalar transport only and why
+adding it to the flow solver's lattice list would be an error, not a choice.
+\end{draft}
 
 \subsection{D2Q37}
 
 The space-filling form of the D2V37 quadrature of \textcite{Philippi2006}: integer
 velocities on eight shells with one weight per shell, ordered shell by shell with opposite
 pairs adjacent within a shell. \code{opp} is derived from the velocity list rather than
-typed. \Cref{tab:d2q37} lists the shells.
+typed. \Cref{tab:d2q37} lists the shells and \cref{fig:d2q37} shows them.
 
 \begin{table}[h]
 \centering\small
@@ -162,6 +254,14 @@ for the full order. $\cs^2 = 1/r^2 = 0.697953322019683$.}
 \label{tab:d2q37}
 \end{table}
 
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-d2q37}\end{adjustbox}
+\caption{The D2Q37 velocity set on the integer lattice, coloured by shell. Circles mark the
+shell radii; the rule is not a tensor product and reaches to $|\vc| = \sqrt{10}$.}
+\label{fig:d2q37}
+\end{figure}
+
 \begin{verified}
 The eight weights were re-derived independently by solving the moment constraints of orders
 0 to 8 for the eight shell weights given $r$; the solution agrees with the tabulated values to
@@ -169,49 +269,81 @@ $3\times10^{-15}$ and the constraints are satisfied to $7\times10^{-15}$. Odd mo
 and even moments are isotropic through eighth order. Declared \code{isotropy\_order = 8}.
 \end{verified}
 
-\begin{maintainer}[D2Q37: scaling, reference temperature and thermal use]
-Confirm $r$ and the weights against \textcite{Philippi2006} and \textcite{Sbragaglia2009}.
-Explain the relation between the quadrature abscissae and the integer lattice, why the
-reference temperature $T_0 = 1/r^2$ appears as $\cs^2$, and which moments the thermal
-equilibrium needs.
-\end{maintainer}
+\begin{draft}[D2Q37: scaling, reference temperature and thermal use]
+Unlike D2Q9, D2Q37 is not a tensor product of one-dimensional rules. \textcite{Philippi2006}
+prescribe the velocity set as integer vectors on eight shells and solve the moment
+conditions \cref{eq:gaussian-moments} for the weights and for one free scale: the abscissae
+of the degree-9 quadrature are $\boldsymbol{\xi}_i = r\,\vc_i$ with $\vc_i$ the integer vectors
+of \cref{tab:d2q37}, and the scale $r = 1.19697977\ldots$ is the value for which a
+degree-9 rule with those abscissae exists. In lattice units the populations move along the
+integer $\vc_i$, and the reference temperature that appears in the equilibrium and as the
+squared sound speed is $T_0 = \cs^2 = 1/r^2 \approx 0.698$ (\cref{eq:gaussian-moments} with
+$\theta = 1$ in the scaled variable). Rescaling the velocities by $1/r$ instead, as one
+might read off the abscissae, produces a non-integer stencil that cannot stream; that is what
+the integer-velocity check in \code{Lattice} guards against.
 
-\subsection{D3Q19}
+The thermal equilibrium of \textcite{Sbragaglia2009} is the fourth-order Hermite expansion
+of the Maxwellian at local temperature $T$ and velocity $\vu$, with coefficients depending on
+$T - T_0$. Reproducing its moments up to fourth order exactly, which is what the energy
+equation and the heat flux need, requires quadrature exactness to degree~9, hence the
+eighth-order isotropy the tests check. With a suitably chosen relaxation and forcing, the
+scheme recovers the compressible thermo-hydrodynamic equations with the correct viscosity
+and thermal conductivity without the additional distribution or correction terms that
+low-order thermal models require.
+\end{draft}
 
-Rest; six axis directions; twelve edge (face-diagonal) directions. Opposite pairs are
-adjacent throughout:
+\subsection{D3Q19 and D3Q27}
+
+D3Q19 is the rest particle, six axis directions and twelve edge (face-diagonal) directions,
+with opposite pairs adjacent throughout:
 \[
 +x,-x,+y,-y,+z,-z,\quad\text{then}\quad (1,1,0),(-1,-1,0),(1,-1,0),(-1,1,0)
 \]
 and likewise in the $xz$ and $yz$ planes. Weights $1/3$, $1/18$ (axis), $1/36$ (edge).
-
-\begin{verified}
-Normalised; odd moments vanish; second moment $\tfrac13\delta_{\alpha\beta}$; fourth-order
-isotropy holds to fp64 rounding; sixth order fails (error $0.22$). Declared
-\code{isotropy\_order = 4}.
-\end{verified}
-
-\subsection{D3Q27}
-
-The D3Q19 ordering followed by the eight corner (body-diagonal) directions, again in
-opposite pairs:
+D3Q27 is the D3Q19 ordering followed by the eight corner (body-diagonal) directions, again
+in opposite pairs:
 \begin{gather*}
 (1,1,1),(-1,-1,-1),\quad (1,1,-1),(-1,-1,1),\\
 (1,-1,1),(-1,1,-1),\quad (-1,1,1),(1,-1,-1).
 \end{gather*}
 The first nineteen entries coincide with D3Q19. Weights $8/27$, $2/27$ (axis), $1/54$
-(edge), $1/216$ (corner).
+(edge), $1/216$ (corner). \Cref{fig:d3q} shows both.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-d3q}\end{adjustbox}
+\caption{D3Q19 and D3Q27 in oblique projection. Both are fourth-order isotropic; the eight
+corner velocities are what D3Q27 adds.}
+\label{fig:d3q}
+\end{figure}
 
 \begin{verified}
-Same identities as D3Q19 hold; sixth order fails (error $0.22$). Declared
+Both: normalised; odd moments vanish; second moment $\tfrac13\delta_{\alpha\beta}$;
+fourth-order isotropy holds to fp64 rounding; sixth order fails (error $0.22$). Declared
 \code{isotropy\_order = 4}.
 \end{verified}
 
-\begin{maintainer}[D3Q19 versus D3Q27]
-State what the corner velocities add (which third-order moments, and the consequence for
-Galilean invariance and stability) and when the extra eight populations are worth the memory
-on a \SI{16}{GB} card.
-\end{maintainer}
+\begin{draft}[D3Q19 versus D3Q27]
+Both lattices are fourth-order isotropic, so both recover isothermal Navier--Stokes with the
+same viscosity. They differ in the sixth-order tensor
+\[
+\sum_i w_i\, c_{i\alpha}c_{i\beta}c_{i\gamma}c_{i\delta}c_{i\epsilon}c_{i\zeta},
+\]
+which neither reproduces exactly but which enters the $O(u^3)$ truncation error of the
+momentum equation. Without corner velocities,
+D3Q19 has
+\[
+\sum_i w_i\, c_{ix}^2 c_{iy}^2 c_{iz}^2 = 0,
+\]
+so its cubic error terms lack the symmetry of the full stencil; the resulting defect in rotational invariance shows up as
+spurious, grid-aligned structures in under-resolved or high-Reynolds-number flows
+\parencite{WhiteChong2011,SilvaSemiao2014}. D3Q27 restores the cubic symmetry of those
+terms, at the cost of $27/19 \approx 1.42$ times the population storage and bandwidth. On a
+\SI{16}{GB} card, one fp32 population field on a $256^3$ grid takes \SI{1.3}{GB} with D3Q19
+and \SI{1.8}{GB} with D3Q27; a differentiable rollout stores several such fields per
+checkpointed segment. Use D3Q19 by default and D3Q27 when rotational-invariance errors are
+visible in the result or when the case is turbulent and only marginally resolved.
+\end{draft}
 
 %----------------------------------------------------------------------------------------
 

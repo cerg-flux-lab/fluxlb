@@ -29,8 +29,9 @@ install \code{torch} from the matching PyTorch index before the editable install
 The maintainer hand-writes scientific and algorithmic code: stencils, equilibrium, collision
 operators, boundary conditions, losses, architectures. The assistant reviews against theory,
 the conventions and the collision-seam invariant, writes Tier~3 code to specification, and
-drafts skeletons with bodies left for the maintainer. This guide follows the same rule, hence
-the orange boxes.
+drafts skeletons with bodies left for the maintainer. This guide follows the same rule: the
+blue boxes hold theory drafted at the maintainer's request and are read as unverified until
+the maintainer has revised them and removed the box.
 
 %----------------------------------------------------------------------------------------
 
@@ -43,3 +44,19 @@ git subtree push --prefix=docs/guide guide main    # fluxlb -> fluxlb_guide (the
 git subtree pull --prefix=docs/guide guide main --squash   # Overleaf edits -> fluxlb
 \end{lstlisting}
 Build locally with \code{latexmk -pdf main.tex}; the bibliography needs \code{biber}.
+
+\section{API reference}
+
+The API reference is not part of this guide. Sphinx generates it from the docstrings and
+publishes it, together with the roadmap and this PDF, at
+\url{https://cerg-flux-lab.github.io/fluxlb/}. The split is deliberate: theory and design
+rationale are written once, here; signatures and behaviour are documented once, in the code.
+Docstrings therefore explain physics and intent, not only the signature. \Cref{fig:docs} shows
+the pipeline.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-docs-pipeline}\end{adjustbox}
+\caption{Documentation pipeline. Two sources with one owner each feed a single site.}
+\label{fig:docs}
+\end{figure}

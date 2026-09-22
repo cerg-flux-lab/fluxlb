@@ -18,9 +18,10 @@ yet implemented and are not described here.
 
 The repository's \file{CLAUDE.md} sets a three-tier ownership framework, summarised in
 \cref{tab:tiers}. Scientific reasoning (Tier~1) is written by the maintainer; implementation
-notes, tables and tooling (Tier~3) may be drafted from the code. In this document, orange
-boxes mark Tier~1 passages still to be written, and green boxes record facts that were
-checked numerically against the code as it stands.
+notes, tables and tooling (Tier~3) may be drafted from the code. In this document, blue
+boxes mark Tier~1 theory drafted at the maintainer's request and awaiting verification,
+orange boxes mark Tier~1 passages still to be written, and green boxes record facts that
+were checked numerically against the code as it stands.
 
 \begin{table}[h]
 \centering\small
@@ -66,8 +67,37 @@ throughput and Apple's MPS backend has no fp64 at all, so the accumulation dtype
 per-device decision made in one place (\cref{sec:precision}).
 \end{description}
 
-\begin{maintainer}[why these two conventions follow from the physics and the hardware]
-Explain why conservation of mass and momentum, rather than the whole population update, is
-the quantity that needs extended precision, and what error the fp32 fallback on MPS
-introduces into the conservation checks.
-\end{maintainer}
+\begin{draft}[why these two conventions follow from the physics and the hardware]
+In the weakly compressible regime the lattice Boltzmann method simulates, the pressure is
+$p = \cs^2\rho$ and the density varies by $O(\mathrm{Ma}^2)$ about its mean. The physically
+meaningful signal in $\rho = \sum_i f_i$ is therefore a small deviation of a sum of $Q$
+terms of order one, and the velocity $\vu = \sum_i \vc_i f_i / \rho$ divides one such sum by
+another. A reduction of $Q$ terms in floating point with unit round-off $\varepsilon$ carries
+an error of order $Q\varepsilon$ relative to the terms \parencite{Higham2002}: about
+$10^{-6}$ in fp32 for $Q = 9$, which is comparable to the density deviation at
+$\mathrm{Ma} \approx 10^{-3}$ and is incurred afresh at every node and every time step.
+Because collision recomputes the equilibrium from $\rho$ and $\vu$, that rounding feeds
+straight back into the populations, and mass and momentum drift as a random walk over the
+run. Accumulating the moments in fp64 makes the reduction error $Q\varepsilon_{64} \sim
+10^{-15}$, negligible against the fp32 representation of the populations themselves, so the
+conservation error is set by the storage precision alone. The population update, by
+contrast, is a local relaxation whose $O(\varepsilon_{32})$ rounding does not accumulate in
+the same way and whose cost dominates the step, so fp32 there is the right trade on hardware
+with weak fp64.
+
+On MPS there is no fp64, and the accumulation falls back to fp32 with a warning. The
+conservation tests must then tolerate a per-step mass error of order $Q\varepsilon_{32}
+\approx 10^{-6}$ instead of $10^{-15}$, and long runs on MPS should be treated as
+development runs, not as reference results. That is the reason the fallback warns rather
+than fails.
+\end{draft}
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-precision}\end{adjustbox}
+\caption{Precision in one collision step. Populations and the collision are fp32; the
+moment reductions accumulate in fp64 where the device allows it, so the summation error is
+below the fp32 storage floor. On MPS the reduction is fp32 and the floor rises to about
+$10^{-6}$ per step.}
+\label{fig:precision}
+\end{figure}

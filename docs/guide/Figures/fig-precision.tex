@@ -1,0 +1,26 @@
+% Where fp32 and fp64 live in one collision step, and where rounding enters.
+\begin{tikzpicture}[
+  >={Stealth[length=2mm]},
+  node distance=9mm and 12mm,
+  box/.style={draw, rounded corners=2pt, align=center, font=\small, inner sep=5pt, minimum height=9mm},
+  f32/.style={box, fill=blue!6, draw=blue!60!black},
+  f64/.style={box, fill=orange!10, draw=orange!70!black},
+  note/.style={font=\scriptsize, gray!80!black, align=center},
+  arr/.style={->, line width=0.8pt},
+]
+\node[f32] (f) {populations $f_i$\\ \code{[Q, *spatial]} fp32};
+\node[f64, right=of f] (mom) {moments\\ $\rho = \sum_i f_i$,\ $\rho\vu = \sum_i \vc_i f_i$\\ accumulated fp64};
+\node[f32, right=of mom] (eq) {equilibrium $f_i^{\mathrm{eq}}(\rho,\vu)$\\ fp32};
+\node[f32, below=of eq] (col) {collision\\ $f_i \leftarrow f_i - \tfrac{1}{\tau}(f_i - f_i^{\mathrm{eq}})$\\ fp32};
+
+\draw[arr] (f) -- node[note, above] {\code{sum(dtype=fp64)}} (mom);
+\draw[arr] (mom) -- node[note, above] {\code{.to(fp32)}} (eq);
+\draw[arr] (eq) -- (col);
+\draw[arr] (col.west) -| ++(-0.6,0) |- ($(f.south)+(0,-0.35)$) -- (f.south);
+\node[note, below=1.5mm of f, xshift=-2mm] {next step};
+
+\node[note, below=2mm of mom, text width=4.2cm]
+  {reduction of $Q$ terms: error $\sim Q\varepsilon$\\ fp64: $10^{-15}$ \quad fp32 (MPS): $10^{-6}$};
+
+\node[note, above=1mm of f, text width=3.4cm] {storage precision sets\\ the conservation floor};
+\end{tikzpicture}

@@ -6,8 +6,9 @@
 
 The module \code{fluxlb.core.gpu} holds no physics. It exists so that the rest of the
 package asks one place for the device, the accumulation dtype and memory or timing figures,
-and behaves the same on a CUDA node, an Apple laptop and a plain CPU. Its public surface is
-tabulated in \cref{AppendixA}.
+and behaves the same on a CUDA node, an Apple laptop and a plain CPU. Signatures and
+per-function behaviour are in the API reference generated from the docstrings at
+\url{https://cerg-flux-lab.github.io/fluxlb/}; this chapter explains the policies behind them.
 
 %----------------------------------------------------------------------------------------
 
@@ -21,7 +22,15 @@ back, so a job never quietly runs on the CPU.
 
 \code{resolve\_device(x)} normalises a \code{torch.device}, a device string, a CUDA index
 or \code{None} (meaning \code{get\_device()}) to a \code{torch.device}. Every per-device
-helper accepts this loose form.
+helper accepts this loose form. \Cref{fig:device} shows the resolution order.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-device}\end{adjustbox}
+\caption{Device resolution in \code{get\_device()}. An explicit override is honoured or
+rejected; only in its absence does automatic selection run.}
+\label{fig:device}
+\end{figure}
 
 %----------------------------------------------------------------------------------------
 

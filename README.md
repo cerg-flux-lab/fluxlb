@@ -113,7 +113,12 @@ The full plan lives in [`docs/lbm-sciml-roadmap.md`](docs/lbm-sciml-roadmap.md) 
 
 ## Documentation
 
-Built with Sphinx and published to `https://cerg-flux-lab.github.io/fluxlb/` (theory guide, API reference, worked tutorials). Contributions to docs are expected alongside code, not after.
+Two artefacts, one owner each, published together at `https://cerg-flux-lab.github.io/fluxlb/`:
+
+- **User guide (PDF).** The narrative: theory paired with implementation, chapter by chapter as the solver grows. LaTeX source in [`docs/guide/`](docs/guide/), mirrored to [`fluxlb_guide`](https://github.com/cerg-flux-lab/fluxlb_guide) for Overleaf. Theory prose is written by the maintainer.
+- **API reference (Sphinx).** Generated from the docstrings, plus the roadmap. Source in [`docs/`](docs/); build with `pip install -e ".[docs]" && sphinx-build -b html docs docs/_build/html`. No theory prose lives here.
+
+Contributions to docs are expected alongside code, not after: docstrings with every public function, and a guide section when a concept lands.
 
 ## Contributing
 

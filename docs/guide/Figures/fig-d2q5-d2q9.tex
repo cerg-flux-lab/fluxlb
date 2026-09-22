@@ -1,0 +1,47 @@
+% D2Q5 and D2Q9 velocity sets with index labels and weight classes.
+\begin{tikzpicture}[
+  >={Stealth[length=2mm]},
+  vel/.style={-{Stealth[length=2mm]}, line width=0.9pt},
+  idx/.style={font=\scriptsize, inner sep=1pt},
+  node distance=0pt,
+]
+\colorlet{wrest}{black!70}
+\colorlet{waxis}{blue!70!black}
+\colorlet{wdiag}{red!70!black}
+
+% ---- D2Q5 ----
+\begin{scope}[shift={(0,0)}]
+  \draw[gray!40, step=1] (-1.4,-1.4) grid (1.4,1.4);
+  \foreach \i/\x/\y in {1/1/0, 2/0/1, 3/-1/0, 4/0/-1} {
+    \draw[vel, waxis] (0,0) -- (\x,\y);
+    \node[idx, waxis] at ({1.25*\x + 0.2*\y}, {1.25*\y + 0.2*\x}) {$\i$};
+  }
+  \fill[wrest] (0,0) circle (2.2pt);
+  \node[idx, wrest, below right=2pt] at (0,0) {$0$};
+  \node[font=\small\bfseries] at (0,-2.0) {D2Q5};
+  \node[font=\scriptsize, align=left, text width=3.2cm] at (0,-2.6)
+    {$w_0 = 1/3$,\ $w_{1\text{--}4} = 1/6$\\ $\cs^2 = 1/3$, isotropy order 2};
+\end{scope}
+
+% ---- D2Q9 ----
+\begin{scope}[shift={(5.2,0)}]
+  \draw[gray!40, step=1] (-1.4,-1.4) grid (1.4,1.4);
+  \foreach \i/\x/\y in {1/1/0, 2/0/1, 3/-1/0, 4/0/-1} {
+    \draw[vel, waxis] (0,0) -- (\x,\y);
+    \node[idx, waxis] at ({1.25*\x + 0.2*\y}, {1.25*\y + 0.2*\x}) {$\i$};
+  }
+  \foreach \i/\x/\y in {5/1/1, 6/-1/1, 7/-1/-1, 8/1/-1} {
+    \draw[vel, wdiag] (0,0) -- (\x,\y);
+    \node[idx, wdiag] at ({1.2*\x}, {1.2*\y}) {$\i$};
+  }
+  \fill[wrest] (0,0) circle (2.2pt);
+  \node[idx, wrest, below right=2pt] at (0,0) {$0$};
+  \node[font=\small\bfseries] at (0,-2.0) {D2Q9};
+  \node[font=\scriptsize, align=left, text width=4.4cm] at (0,-2.6)
+    {$w_0 = 4/9$,\ $w_{1\text{--}4} = 1/9$,\ $w_{5\text{--}8} = 1/36$\\ $\cs^2 = 1/3$, isotropy order 4};
+\end{scope}
+
+% ---- opposite pairs annotation ----
+\node[font=\scriptsize, gray!80!black, align=center] at (2.6,1.9)
+  {$\bar{i}$: $1\leftrightarrow3$, $2\leftrightarrow4$,\\ $5\leftrightarrow7$, $6\leftrightarrow8$};
+\end{tikzpicture}
