@@ -11,7 +11,6 @@ are implemented: D2Q5, D2Q9, D2Q37, D3Q19 and D3Q27.
 
 \section{Theory}\label{sec:lattice-theory}
 
-\begin{draft}[discrete velocity sets as Gauss--Hermite quadratures]
 The lattice Boltzmann method discretises the Boltzmann equation with the BGK collision
 operator \parencite{BGK1954,QianHumieresLallemand1992,HeLuo1997} in velocity space first and
 in space and time second. The velocity discretisation is a quadrature: the hydrodynamic
@@ -87,7 +86,6 @@ redistributes weight while keeping degree-5 exactness, hence fourth-order isotro
       which fixes the energy flux and heat flux without ad hoc corrections
       \parencite{Philippi2006,ShanYuanChen2006,Sbragaglia2009}.
 \end{itemize}
-\end{draft}
 
 \begin{figure}[h]
 \centering
@@ -212,7 +210,6 @@ $\tfrac13\delta_{\alpha\beta}$; fourth-order isotropy holds to $3\times10^{-8}$ 
 $6\times10^{-17}$ in fp64; sixth order fails; \code{isotropy\_order = 4}.
 \end{verified}
 
-\begin{draft}[why D2Q5 is restricted to scalar transport]
 D2Q5 has no diagonal velocities, so $\sum_i w_i c_{ix}^2 c_{iy}^2 = 0$ whereas fourth-order
 isotropy requires $\cs^4 = 1/9$. The equilibrium second moment $\rho\cs^2\delta_{\alpha\beta}
 + \rho u_\alpha u_\beta$ therefore cannot be represented: the off-diagonal $\rho u_x u_y$
@@ -224,7 +221,6 @@ moments to be exact, and the diffusive flux needs only second-order isotropy. Bo
 giving the advection--diffusion equation with $\kappa = \cs^2(\tau_g - \tfrac12)$
 \parencite{Kruger2017}. This is why the lattice is classed as scalar transport only and why
 adding it to the flow solver's lattice list would be an error, not a choice.
-\end{draft}
 
 \subsection{D2Q37}
 
@@ -269,7 +265,6 @@ $3\times10^{-15}$ and the constraints are satisfied to $7\times10^{-15}$. Odd mo
 and even moments are isotropic through eighth order. Declared \code{isotropy\_order = 8}.
 \end{verified}
 
-\begin{draft}[D2Q37: scaling, reference temperature and thermal use]
 Unlike D2Q9, D2Q37 is not a tensor product of one-dimensional rules. \textcite{Philippi2006}
 prescribe the velocity set as integer vectors on eight shells and solve the moment
 conditions \cref{eq:gaussian-moments} for the weights and for one free scale: the abscissae
@@ -290,7 +285,6 @@ eighth-order isotropy the tests check. With a suitably chosen relaxation and for
 scheme recovers the compressible thermo-hydrodynamic equations with the correct viscosity
 and thermal conductivity without the additional distribution or correction terms that
 low-order thermal models require.
-\end{draft}
 
 \subsection{D3Q19 and D3Q27}
 
@@ -323,7 +317,6 @@ fourth-order isotropy holds to fp64 rounding; sixth order fails (error $0.22$). 
 \code{isotropy\_order = 4}.
 \end{verified}
 
-\begin{draft}[D3Q19 versus D3Q27]
 Both lattices are fourth-order isotropic, so both recover isothermal Navier--Stokes with the
 same viscosity. They differ in the sixth-order tensor
 \[
@@ -343,7 +336,6 @@ terms, at the cost of $27/19 \approx 1.42$ times the population storage and band
 and \SI{1.8}{GB} with D3Q27; a differentiable rollout stores several such fields per
 checkpointed segment. Use D3Q19 by default and D3Q27 when rotational-invariance errors are
 visible in the result or when the case is turbulent and only marginally resolved.
-\end{draft}
 
 %----------------------------------------------------------------------------------------
 
