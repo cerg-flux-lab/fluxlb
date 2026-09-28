@@ -37,6 +37,9 @@ exclude_patterns = ["_build", "guide/**", "Thumbs.db", ".DS_Store"]
 napoleon_numpy_docstring = True
 napoleon_google_docstring = False
 napoleon_use_rtype = False
+# Render numpy "Attributes" sections as :ivar: fields. As attribute directives they would
+# duplicate the annotated class attributes autodoc already documents (Sphinx -W fails).
+napoleon_use_ivar = True
 
 autodoc_default_options = {
     "members": True,
