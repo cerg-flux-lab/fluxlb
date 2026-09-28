@@ -1,0 +1,115 @@
+% Chapter 1: scope, conventions and design principles
+
+\chapter{Scope and conventions}
+
+\label{Chapter1}
+
+%----------------------------------------------------------------------------------------
+
+\section{What this part covers}
+
+This guide grows with the code. Part~I covers the two modules of \code{fluxlb.core} that
+are complete and tested, the device and precision utilities in \file{gpu.py} and the
+velocity sets in \file{lattices.py}, together with the tests that verify them. It stops
+where the solver does: streaming, collision, boundary conditions and the time loop are not
+yet implemented and are not described here.
+
+\section{Authorship}
+
+The repository's \file{CLAUDE.md} sets a three-tier ownership framework, summarised in
+\cref{tab:tiers}. Scientific reasoning (Tier~1) is written by the maintainer; implementation
+notes, tables and tooling (Tier~3) may be drafted from the code. In this document, theory
+drafted at the maintainer's request is held in a blue box until the maintainer has verified
+it, passages still to be written are held in an orange box, and green boxes record facts
+that were checked numerically against the code as it stands. Every theory passage in Part~I
+has been verified by the maintainer and appears as plain text.
+
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lp{0.62\linewidth}@{}}
+\toprule
+Tier & Scope \\
+\midrule
+1 & Scientific logic and science prose: loss and residual formulations, boundary-condition
+    choices, collision-operator and architecture rationale, physical reasoning, theory text. \\
+2 & Drafting from direction: correspondence, changelogs, release notes. \\
+3 & Execution to specification: boilerplate, plumbing, refactors, tooling, tests, CI. \\
+\bottomrule
+\end{tabular}
+\caption{Intellectual-ownership tiers from \file{CLAUDE.md}.}
+\label{tab:tiers}
+\end{table}
+
+\section{Notation}
+
+A lattice has $Q$ discrete velocities $\vc_i$, $i = 0,\dots,Q-1$, in $D$ dimensions, with
+weights $w_i$ and squared lattice sound speed $\cs^2$. The distribution tensor is $f$ with
+shape $[Q, *\text{spatial}]$, so that index~0 runs over velocities. The opposite direction
+of $i$ is $\bar{i}$, with $\vc_{\bar{i}} = -\vc_i$. Greek indices label spatial components
+and $\delta_{\alpha\beta}$ is the Kronecker delta. The weighted lattice sum is
+$\langle g \rangle = \sum_i w_i\, g(\vc_i)$.
+\Cref{fig:notation} collects these conventions in one picture.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-notation}\end{adjustbox}
+\caption{Notation. Left: one D2Q9 node with its $Q$ velocities $\vc_i$, indexed
+$0,\dots,Q-1$; colour marks the weight class $w_i$ and the opposite pair
+$\vc_3 = \vc_{\bar{1}} = -\vc_1$ is highlighted. Greek indices label spatial components,
+$c_{i\alpha}$. Right: the distribution tensor $f$ of shape $[Q, *\text{spatial}]$. Axis~0 runs
+over velocities, so $f_i$ is one spatial slab and every lattice sum $\sum_i$, including
+$\langle g \rangle$, is a reduction along that axis.}
+\label{fig:notation}
+\end{figure}
+
+%----------------------------------------------------------------------------------------
+
+\section{Design principles carried by these modules}
+
+Two conventions from \file{CLAUDE.md} shape everything in this part.
+
+\begin{description}[style=nextline]
+\item[One device and dtype context.]
+Lattice constants are registered as PyTorch buffers so that a single
+\code{module.to(device, dtype)} moves the whole solver. Nothing in a hot loop may query the
+device or copy data to the host.
+
+\item[fp32 compute, fp64 accumulation.]
+Populations and collisions are computed in fp32. Conserved moments (density and momentum)
+are accumulated in fp64 where the hardware allows it. The primary node has weak fp64
+throughput and Apple's MPS backend has no fp64 at all, so the accumulation dtype is a
+per-device decision made in one place (\cref{sec:precision}).
+\end{description}
+
+In the weakly compressible regime the lattice Boltzmann method simulates, the pressure is
+$p = \cs^2\rho$ and the density varies by $O(\mathrm{Ma}^2)$ about its mean. The physically
+meaningful signal in $\rho = \sum_i f_i$ is therefore a small deviation of a sum of $Q$
+terms of order one, and the velocity $\vu = \sum_i \vc_i f_i / \rho$ divides one such sum by
+another. A reduction of $Q$ terms in floating point with unit round-off $\varepsilon$ carries
+an error of order $Q\varepsilon$ relative to the terms \parencite{Higham2002}: about
+$10^{-6}$ in fp32 for $Q = 9$, which is comparable to the density deviation at
+$\mathrm{Ma} \approx 10^{-3}$ and is incurred afresh at every node and every time step.
+Because collision recomputes the equilibrium from $\rho$ and $\vu$, that rounding feeds
+straight back into the populations, and mass and momentum drift as a random walk over the
+run. Accumulating the moments in fp64 makes the reduction error $Q\varepsilon_{64} \sim
+10^{-15}$, negligible against the fp32 representation of the populations themselves, so the
+conservation error is set by the storage precision alone. The population update, by
+contrast, is a local relaxation whose $O(\varepsilon_{32})$ rounding does not accumulate in
+the same way and whose cost dominates the step, so fp32 there is the right trade on hardware
+with weak fp64.
+
+On MPS there is no fp64, and the accumulation falls back to fp32 with a warning. The
+conservation tests must then tolerate a per-step mass error of order $Q\varepsilon_{32}
+\approx 10^{-6}$ instead of $10^{-15}$, and long runs on MPS should be treated as
+development runs, not as reference results. That is the reason the fallback warns rather
+than fails.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-precision}\end{adjustbox}
+\caption{Precision in one collision step. Populations and the collision are fp32; the
+moment reductions accumulate in fp64 where the device allows it, so the summation error is
+below the fp32 storage floor. On MPS the reduction is fp32 and the floor rises to about
+$10^{-6}$ per step.}
+\label{fig:precision}
+\end{figure}

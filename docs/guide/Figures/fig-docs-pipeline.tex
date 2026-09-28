@@ -1,0 +1,33 @@
+% Documentation pipeline: two sources, one site.
+\begin{tikzpicture}[
+  >={Stealth[length=2mm]},
+  node distance=6mm and 9mm,
+  src/.style={draw, rounded corners=2pt, align=center, font=\small, inner sep=5pt, minimum width=30mm, fill=gray!5},
+  tool/.style={draw, rounded corners=2pt, align=center, font=\small\ttfamily, inner sep=4pt, fill=blue!6, draw=blue!60!black},
+  outp/.style={draw, rounded corners=2pt, align=center, font=\small, inner sep=5pt, fill=green!8, draw=green!50!black},
+  arr/.style={->, line width=0.8pt},
+  lab/.style={font=\scriptsize, gray!80!black, align=center},
+]
+\node[src] (doc) {docstrings\\ \code{fluxlb/**/*.py}};
+\node[src, below=12mm of doc] (tex) {LaTeX guide\\ \code{docs/guide/}};
+\node[src, below=of tex] (ol) {Overleaf\\ \code{fluxlb\_guide}};
+
+\node[tool, right=of doc] (sphinx) {sphinx-build};
+\node[tool, right=of tex] (latexmk) {latexmk};
+
+\node[outp, right=of sphinx] (site) {API reference\\ HTML};
+\node[outp, right=of latexmk] (pdf) {user guide\\ PDF};
+\node[outp, right=18mm of $(site.east)!0.5!(pdf.east)$, minimum height=16mm] (pages) {GitHub Pages\\ \scriptsize cerg-flux-lab.github.io/fluxlb};
+
+\draw[arr] (doc) -- node[lab, above] {autodoc} (sphinx);
+\draw[arr] (sphinx) -- (site);
+\draw[arr] (tex) -- (latexmk);
+\draw[arr] (latexmk) -- (pdf);
+\draw[arr] (site.east) -- (pages.west |- site.east);
+\draw[arr] (pdf.east) -- (pages.west |- pdf.east);
+\draw[<->, line width=0.8pt] (ol) -- node[lab, right] {git subtree} (tex);
+
+\node[lab, text width=4.6cm, anchor=west] at ($(doc.south east)!0.5!(tex.north east)+(0.3,0)$)
+  {theory once, in the guide; behaviour once, in the code};
+\node[lab, anchor=north west, text width=4.6cm] at ($(pages.south west)+(0,-0.15)$) {built by \code{.github/workflows/docs.yml} on every push to \code{main}};
+\end{tikzpicture}

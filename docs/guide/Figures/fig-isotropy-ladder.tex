@@ -1,0 +1,24 @@
+% Which isotropy order buys which physics, and which lattice sits where.
+\begin{tikzpicture}[
+  >={Stealth[length=2mm]},
+  rung/.style={draw, rounded corners=2pt, minimum width=32mm, minimum height=9mm, align=center, font=\small, fill=gray!5},
+  phys/.style={align=left, font=\small, text width=6.2cm, anchor=west},
+  lat/.style={font=\small\ttfamily, anchor=east, align=right},
+]
+\node[rung] (o2) at (0,0) {order 2\\ $\langle c_\alpha c_\beta\rangle = \cs^2\delta_{\alpha\beta}$};
+\node[rung] (o4) at (0,1.9) {order 4\\ $\langle cccc\rangle = \cs^4\Delta^{(4)}$};
+\node[rung] (o8) at (0,3.8) {order 8\\ $\langle c^{\otimes 8}\rangle = \cs^8\Delta^{(8)}$};
+\draw[->, line width=1pt, gray!70] (o2) -- (o4);
+\draw[->, line width=1pt, gray!70] (o4) -- (o8);
+
+\node[phys] at ($(o2.east)+(0.4,0)$) {\textbf{Scalar transport.} Advection--diffusion of a passive scalar: needs the advective flux and an isotropic diffusive flux, $\kappa = \cs^2(\tau - \tfrac12)$.};
+\node[phys] at ($(o4.east)+(0.4,0)$) {\textbf{Isothermal Navier--Stokes.} Newtonian stress from $\Pi^{\mathrm{eq}} = \rho\cs^2\mathbf{I} + \rho\vu\vu$; $\nu = \cs^2(\tau - \tfrac12)$. Residual $O(u^3)$ error.};
+\node[phys] at ($(o8.east)+(0.4,0)$) {\textbf{Thermal and compressible.} Fourth-order Hermite equilibrium at variable $T$; energy equation and heat flux without corrections.};
+
+\node[lat] at ($(o2.west)+(-0.4,0)$) {D2Q5};
+\node[lat] at ($(o4.west)+(-0.4,0)$) {D2Q9\\ D3Q19\\ D3Q27};
+\node[lat] at ($(o8.west)+(-0.4,0)$) {D2Q37};
+
+\node[font=\scriptsize, gray!80!black, anchor=north] at (0,-0.8)
+  {\code{isotropy\_order} on each \code{Lattice}; the tests check exactly the orders claimed};
+\end{tikzpicture}

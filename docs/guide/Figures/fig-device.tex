@@ -1,0 +1,34 @@
+% Device resolution in get_device(): override first, then CUDA > MPS > CPU.
+\begin{tikzpicture}[
+  >={Stealth[length=2mm]},
+  node distance=6mm and 10mm,
+  dec/.style={draw, diamond, aspect=2.6, align=center, font=\scriptsize, inner sep=1pt, fill=gray!5},
+  dev/.style={draw, rounded corners=2pt, align=center, font=\small\ttfamily, inner sep=5pt, minimum width=18mm},
+  err/.style={dev, fill=red!8, draw=red!60!black, font=\small},
+  arr/.style={->, line width=0.8pt},
+  lab/.style={font=\scriptsize, fill=white, inner sep=1pt},
+]
+\node[dec] (env) {\code{FLUXLB\_DEVICE}\\ set?};
+\node[dec, below=of env] (avail) {that backend\\ available?};
+\node[dev, fill=green!8, draw=green!50!black, right=14mm of avail] (over) {torch.device(override)};
+\node[err, left=14mm of avail] (raise) {RuntimeError};
+
+\node[dec, below=of avail] (cuda) {CUDA\\ available?};
+\node[dev, fill=blue!8, draw=blue!60!black, right=14mm of cuda] (dcuda) {cuda};
+\node[dec, below=of cuda] (mps) {MPS\\ available?};
+\node[dev, fill=blue!8, draw=blue!60!black, right=14mm of mps] (dmps) {mps};
+\node[dev, fill=blue!8, draw=blue!60!black, below=of mps] (dcpu) {cpu};
+
+\draw[arr] (env) -- node[lab, right] {yes} (avail);
+\draw[arr] (avail) -- node[lab, above] {yes} (over);
+\draw[arr] (avail) -- node[lab, above] {no} (raise);
+\draw[arr] (env.west) -- ++(-1.1,0) node[lab, above] {no} |- (cuda.west);
+\draw[arr] (cuda) -- node[lab, above] {yes} (dcuda);
+\draw[arr] (cuda) -- node[lab, right] {no} (mps);
+\draw[arr] (mps) -- node[lab, above] {yes} (dmps);
+\draw[arr] (mps) -- node[lab, right] {no} (dcpu);
+
+\node[font=\scriptsize, gray!80!black, align=left, anchor=north west, text width=4.2cm]
+  at ($(dcuda.east)+(0.4,0.3)$)
+  {The override never falls back silently: a SLURM job asking for CUDA on a node without it fails at start-up, not after an hour on the CPU.};
+\end{tikzpicture}

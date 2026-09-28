@@ -16,6 +16,36 @@ Governing principle, the **viva test**: if the maintainer could not independentl
 
 In practice: implementing a well-specified operator or data loader is Tier 3; choosing what a learned closure should predict, or how a loss is defined, is Tier 1.
 
+Skeleton-first workflow. When asked to scaffold a module, Claude produces a skeleton only: class and method stubs with signatures and type hints, bodies left as ... or raise NotImplementedError, for the maintainer to fill in. Claude does not write the bodies of scientific logic (Tier 1). Claude may add type hints and the structural parts of a docstring (numpy-convention Parameters / Returns / Raises sections); the sentences describing the physics or intent are Tier 1 and are written or verified by the maintainer.
+The structure itself is Tier 1 where it encodes scientific design — e.g. a new collision operator or network. For those, Claude proposes the skeleton and the maintainer directs it; it does not decide the interface unilaterally. The CollisionOperator invariant already binds this case.
+
+## Working mode (maintainer writes, assistant challenges)
+
+Day-to-day application of the Intellectual Ownership Framework above. A hard
+constraint, not a preference.
+
+- **The maintainer hand-writes all scientific and algorithmic code** — lattices/
+  stencils, equilibrium, collision operators, boundary conditions, loss and residual
+  formulations, network architecture. This is deliberate practice: the aim is to
+  wrestle with the theory and the algorithm sequencing, not to receive a finished
+  implementation. It holds even where the assistant could draft the code. For these,
+  explain and offer options with trade-offs, then stop.
+- **Act as a second coder, not a rubber stamp.** When reviewing the maintainer's code,
+  challenge it — against LBM theory, against the Conventions and Testing expectations
+  below, and against the one invariant. Flag anything incorrect, fragile, non-autograd-
+  safe, or that breaks conservation or the collision seam, and say so plainly. Do not
+  approve by default or soften a real problem.
+- **Write Tier-3 to spec on request** — tests (conservation, gradcheck, regression,
+  smoke), tooling, CI, plumbing, refactors.
+- **Build the user guide in-repo as concepts land.** The guide is LaTeX under
+  `docs/guide/` (mirrored to the `fluxlb_guide` repo for Overleaf via `git subtree`),
+  pairing each concept's theory with its FluxLB implementation. The maintainer authors
+  the theory and must be able to defend it (the viva test); structure it, format it,
+  cross-check it against sources, and draft the Tier-3 implementation notes only. Theory
+  prose is Tier 1 — do not author or finalise it. The Sphinx site under `docs/` is the API
+  reference generated from docstrings plus the roadmap; it carries no theory prose, so
+  docstrings must explain physics and intent, not only signatures.
+
 ## Project
 
 `fluxlb` is a differentiable, quantum-ready Lattice Boltzmann solver in PyTorch, with three tracks: a classical core, a broad-ML SciML layer, and a Qiskit quantum layer. See `README.md` and `docs/lbm-sciml-roadmap.md`.
@@ -23,17 +53,6 @@ In practice: implementing a well-specified operator or data loader is Tier 3; ch
 ## The one invariant
 
 **Streaming and collision are strictly separate. Collision is a swappable module behind `fluxlb/core/collision/base.py`.** This seam is what makes the solver differentiable and lets ML or quantum collision operators drop in. Never fuse streaming into collision, never bypass the `CollisionOperator` interface, and never break its signature without a deliberate, discussed change. Every new collision operator (classical, learned, or quantum) implements that interface.
-
-## Commands
-
-```bash
-pip install -e ".[dev]"        # install with dev extras
-pytest                          # full test suite
-pytest -m smoke                 # fast per-family smoke tests
-ruff check . && ruff format .   # lint and format
-mypy fluxlb                   # type check
-sbatch scripts/train.slurm      # submit a training run on the cluster
-```
 
 ## Conventions
 
@@ -56,18 +75,11 @@ sbatch scripts/train.slurm      # submit a training run on the cluster
 - SLURM nodes are **standalone** (no working cross-node fabric). Do **not** assume multi-node distributed training or DDP across nodes; target per-node runs.
 - The foundation-model pretraining task (roadmap E5.10) is compute-gated and needs external HPC. Do not schedule it against the homelab.
 
-## Repository map
-
-- `fluxlb/core/` classical solver (lattices, equilibrium, streaming, collision, boundaries, solver)
-- `fluxlb/sciml/` ML model families
-- `fluxlb/quantum/` Qiskit backend and Carleman/hybrid closures
-- `fluxlb/data/` dataset generation, IO, loaders
-- `fluxlb/eval/` metrics, benchmarks, leaderboard
-- `tests/`, `docs/`, `examples/`, `scripts/`
-
 ## Do not
 
 - Break or bypass the collision interface (see "The one invariant").
 - Commit datasets, checkpoints, or large binaries.
 - Author or finalise Tier 1 scientific content; propose and explain instead.
 - Add dependencies or change public interfaces without flagging it.
+- Rubber-stamp the maintainer's code, or approve it without checking against the
+  theory, the Conventions, and the one invariant.

@@ -1,0 +1,83 @@
+% Chapter 2: device and precision utilities
+
+\chapter{Device and precision utilities}
+
+\label{Chapter2}
+
+The module \code{fluxlb.core.gpu} holds no physics. It exists so that the rest of the
+package asks one place for the device, the accumulation dtype and memory or timing figures,
+and behaves the same on a CUDA node, an Apple laptop and a plain CPU. Signatures and
+per-function behaviour are in the API reference generated from the docstrings at
+\url{https://cerg-flux-lab.github.io/fluxlb/}; this chapter explains the policies behind them.
+
+%----------------------------------------------------------------------------------------
+
+\section{Device selection}
+
+\code{get\_device()} returns the first available of CUDA, MPS and CPU. The environment
+variable \code{FLUXLB\_DEVICE} overrides the choice (for example \code{cpu} or
+\code{cuda:1}) so a SLURM script or a test can pin the device without editing code. An
+override that names an unavailable backend raises \code{RuntimeError} rather than falling
+back, so a job never quietly runs on the CPU.
+
+\code{resolve\_device(x)} normalises a \code{torch.device}, a device string, a CUDA index
+or \code{None} (meaning \code{get\_device()}) to a \code{torch.device}. Every per-device
+helper accepts this loose form. \Cref{fig:device} shows the resolution order.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-device}\end{adjustbox}
+\caption{Device resolution in \code{get\_device()}. An explicit override is honoured or
+rejected; only in its absence does automatic selection run.}
+\label{fig:device}
+\end{figure}
+
+%----------------------------------------------------------------------------------------
+
+\section{Precision policy}\label{sec:precision}
+
+\code{accumulation\_dtype(device)} returns \code{torch.float64} on CUDA and CPU and
+\code{torch.float32} on MPS, with a \code{UserWarning} in the MPS case. The fp32 fallback is
+intentional: it is the only way to run on MPS at all, and the tests pin the behaviour.
+
+The mechanism for using it is PyTorch's reduction \code{dtype} argument, which upcasts
+inside the sum without materialising an fp64 copy of $f$ and is autograd-safe:
+\begin{lstlisting}[style=py]
+rho = f.sum(dim=0, dtype=accumulation_dtype(f.device)).to(f.dtype)
+\end{lstlisting}
+
+%----------------------------------------------------------------------------------------
+
+\section{Memory}
+
+All figures are in bytes and are zero on backends whose allocator PyTorch does not track
+(CPU, MPS).
+\begin{itemize}[nosep]
+\item Allocator counters, as thin wrappers: \code{memory\_allocated(device)},\newline
+      \code{peak\_memory\_allocated(device)} and \code{reset\_peak\_memory(device)}.
+\item \code{track\_memory(device)}: a context manager that resets the peak counters on
+      entry, synchronises on exit, and yields a \code{MemoryReport} with peak allocated, peak
+      reserved and net change. Use it around one time step or one training step to size
+      gradient checkpointing against \SI{16}{GB} of VRAM.
+\item \code{clear\_gpu\_cache()}: runs \code{gc.collect()} first, then releases cached
+      allocator memory on CUDA or MPS. It cannot free tensors that are still referenced.
+\item \code{format\_bytes(n)}: human-readable rendering, for example \code{15.7 GiB}.
+\end{itemize}
+
+%----------------------------------------------------------------------------------------
+
+\section{Timing}
+
+GPU kernels launch asynchronously, so a wall-clock interval taken without synchronising
+measures the launch queue, not the computation. \code{synchronize(device)} blocks until
+queued work finishes (a no-op on CPU). \code{Timer(device)} is a context manager that
+synchronises on entry and exit and exposes \code{elapsed} in seconds.
+
+%----------------------------------------------------------------------------------------
+
+\section{Logging}
+
+SLURM nodes are standalone, so every job log should say where it ran.
+\code{device\_summary(device)} returns one line with hostname, Python and torch versions,
+and on CUDA the driver version, GPU name, VRAM, compute capability and multiprocessor
+count. Print it at job start.

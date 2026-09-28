@@ -86,3 +86,12 @@ Thumbs.db
 
 # --- conda (local prefix envs) ---
 .conda/
+
+# LaTeX build artifacts (docs/guide)
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+docs/guide/*.log
+docs/guide/*.pdf

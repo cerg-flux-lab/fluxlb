@@ -1,0 +1,314 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% fluxlb user guide
+%
+% Built on the Masters/Doctoral Thesis LaTeX template (LaTeXTemplates.com, v2.5,
+% CC BY-NC-SA 3.0) as adapted for the University of Pretoria; class file
+% fluxlbGuide.cls. Compile with:  latexmk -pdf fluxlb-guide.tex   (biber for the bibliography)
+%
+% Authorship convention (see fluxlb/CLAUDE.md): implementation notes, tables and the
+% verification chapter are Tier 3 and drafted from the code. Theory prose is Tier 1 and is
+% marked with a "maintainer" box until the maintainer writes it. Do not remove a box
+% without replacing it with maintainer-authored text.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[
+11pt,
+oneside,
+english,
+onehalfspacing,
+%draft,
+nolistspacing,
+%liststotoc,
+%toctotoc,
+parskip,
+%nohyperref,
+headsepline,
+%chapterinoneline,
+%consistentlayout,
+]{fluxlbGuide}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[print-unity-mantissa=false, separate-uncertainty=true, separate-uncertainty-units=single, range-units=single]{siunitx}
+\usepackage[autostyle=true]{csquotes}
+\usepackage{mathpazo}
+
+\usepackage[font=footnotesize]{caption}
+
+\usepackage[backend=biber, style=ieee, eprint=false, doi=true, maxbibnames=6]{biblatex}
+\addbibresource{references.bib}
+
+\sisetup{range-phrase=--}
+
+\usepackage{amsmath,amssymb} % before hyperref/cleveref, which require it
+
+\usepackage{hyperref}
+\hypersetup{
+	pdfpagemode={UseOutlines},
+	bookmarksopen=true,
+	bookmarksopenlevel=0,
+	hypertexnames=false,
+	colorlinks=false,
+	citecolor=magenta,
+	linkcolor=green,
+	urlcolor=mdtRed,
+	pdfstartview={FitV},
+	unicode,
+	breaklinks=true,
+}
+
+\usepackage[capitalize]{cleveref}
+\crefname{subappendix}{section}{sections}
+
+%----------------------------------------------------------------------------------------
+%	GUIDE-SPECIFIC PACKAGES AND MACROS
+%----------------------------------------------------------------------------------------
+
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{tikz}
+\usepackage{adjustbox}
+\usetikzlibrary{arrows.meta, positioning, calc, shapes.geometric}
+
+% Code listings
+\definecolor{codebg}{gray}{0.96}
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single, framerule=0pt, framesep=4pt,
+  breaklines=true, columns=fullflexible, keepspaces=true,
+  showstringspaces=false,
+}
+\lstdefinestyle{py}{language=Python}
+\lstdefinestyle{sh}{language=bash}
+
+% Tier 1 placeholder: theory prose the maintainer has yet to write.
+\newtcolorbox{maintainer}[1][]{
+  enhanced, breakable,
+  colback=orange!6, colframe=orange!75!black,
+  title={Tier 1 -- maintainer to write: #1},
+  fonttitle=\bfseries\small, coltitle=white,
+  left=2mm, right=2mm, top=1mm, bottom=1mm,
+}
+
+% Theory prose drafted by the assistant at the maintainer's request, awaiting the
+% maintainer's verification and revision. Turn into plain text once checked.
+\newtcolorbox{draft}[1][]{
+  enhanced, breakable,
+  colback=blue!4, colframe=blue!55!black,
+  title={Drafted for review -- maintainer to verify: #1},
+  fonttitle=\bfseries\small, coltitle=white,
+  left=2mm, right=2mm, top=1mm, bottom=1mm,
+}
+
+% Facts checked numerically against the code as it stands.
+\newtcolorbox{verified}{
+  enhanced, breakable,
+  colback=green!5, colframe=green!45!black,
+  title={Verified numerically}, fonttitle=\bfseries\small, coltitle=white,
+  left=2mm, right=2mm, top=1mm, bottom=1mm,
+}
+
+\newcommand{\code}[1]{\texttt{#1}}
+\setlength{\emergencystretch}{3em} % narrow text block plus unhyphenatable code names
+\newcommand{\file}[1]{\texttt{\bfseries#1}}
+\newcommand{\vc}{\mathbf{c}}
+\newcommand{\vu}{\mathbf{u}}
+\newcommand{\cs}{c_s}
+
+%----------------------------------------------------------------------------------------
+%	MARGIN SETTINGS
+%----------------------------------------------------------------------------------------
+
+\geometry{
+	paper=a4paper,
+	inner=2.5cm,
+	outer=3.8cm,
+	bindingoffset=.5cm,
+	top=1.5cm,
+	bottom=1.5cm,
+	%showframe,
+}
+
+%----------------------------------------------------------------------------------------
+%	DOCUMENT INFORMATION
+%----------------------------------------------------------------------------------------
+
+\thesistitle{fluxlb User Guide}
+\supervisor{}
+\examiner{}
+\degree{}
+\author{Muaaz \textsc{Bhamjee}}
+\addresses{}
+
+\subject{Computational Fluid Dynamics}
+\keywords{lattice Boltzmann, differentiable simulation, PyTorch, scientific machine learning, quantum computing}
+\university{\href{https://www.up.ac.za}{University of Pretoria}}
+\department{\href{https://www.up.ac.za/mechanical-and-aeronautical-engineering}{Department of Mechanical and Aeronautical Engineering}}
+\group{\href{https://cerg-flux-lab.github.io/}{CERG-FLUX Lab}}
+\faculty{\href{https://www.up.ac.za/faculty-of-engineering-built-environment-it}{Faculty of Engineering, Built Environment and Information Technology}}
+
+\AtBeginDocument{
+\hypersetup{pdftitle=\ttitle}
+\hypersetup{pdfauthor=\authorname}
+\hypersetup{pdfkeywords=\keywordnames}
+}
+
+\begin{document}
+
+\frontmatter
+
+\pagestyle{plain}
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\begin{titlepage}
+	\linespread{1.5}
+	\begin{center}
+		\vfill
+		{\Huge\textbf{\ttitle}\\}
+		\bigskip
+		{\LARGE Differentiable, quantum-ready lattice Boltzmann in PyTorch\\}
+		\bigskip
+		{\Large Part I: device utilities, lattices and verification\\}
+		\bigskip
+		\bigskip
+		{\LARGE \textbf{\authorname}\\}
+		\bigskip
+		{\large \groupname\\
+		\deptname\\
+		\univname\\}
+		\bigskip
+		\bigskip
+		{\large Draft of \today\\}
+		\bigskip
+		{\large \href{https://github.com/cerg-flux-lab/fluxlb}{github.com/cerg-flux-lab/fluxlb}\\}
+		\vfill
+		\includegraphics[width=0.25\textwidth]{uplogo.jpg}
+	\end{center}
+\end{titlepage}
+
+%----------------------------------------------------------------------------------------
+%	ABSTRACT PAGE
+%----------------------------------------------------------------------------------------
+
+\begin{abstract}
+	\addchaptertocentry{\abstractname}
+	\noindent \code{fluxlb} is a differentiable, quantum-ready lattice Boltzmann solver in
+	PyTorch. Streaming and collision are kept strictly separate, so the collision operator is
+	a swappable module: that single seam keeps the classical solver differentiable, lets
+	machine-learning closures drop in, and marks where a quantum collision operator can be
+	substituted.
+
+	This part of the guide documents what exists so far in \code{fluxlb.core}: the device and
+	precision utilities in \file{gpu.py}, the velocity sets in \file{lattices.py}, and the
+	tests that verify them. Each concept pairs its theory with its implementation. The theory
+	has been verified by the maintainer; facts that were checked numerically against the code
+	are marked as such.
+\end{abstract}
+
+%----------------------------------------------------------------------------------------
+%	LIST OF CONTENTS/FIGURES/TABLES PAGES
+%----------------------------------------------------------------------------------------
+
+\tableofcontents
+
+\listoffigures
+
+\listoftables
+
+%----------------------------------------------------------------------------------------
+%	ABBREVIATIONS
+%----------------------------------------------------------------------------------------
+
+\begin{abbreviations}{ll}
+
+\textbf{LBM}   & \textbf{L}attice \textbf{B}oltzmann \textbf{M}ethod\\
+\textbf{DdQq}  & lattice with \textbf{d} spatial dimensions and \textbf{q} discrete velocities\\
+\textbf{CUDA}  & NVIDIA GPU compute platform\\
+\textbf{MPS}   & \textbf{M}etal \textbf{P}erformance \textbf{S}haders, Apple's GPU backend for PyTorch\\
+\textbf{VRAM}  & GPU memory\\
+\textbf{SLURM} & cluster workload manager used on the lab nodes\\
+\textbf{fp32, fp64} & IEEE single and double precision floating point\\
+\textbf{SciML} & \textbf{Sci}entific \textbf{M}achine \textbf{L}earning\\
+
+\end{abbreviations}
+
+%----------------------------------------------------------------------------------------
+%	CONSTANTS
+%----------------------------------------------------------------------------------------
+
+\begin{constants}{lr@{${}={}$}l}
+
+D2Q37 Hermite scaling factor & $r$ & 1.19697977039307435897239\\
+D2Q37 reference temperature & $T_0 = 1/r^2$ & 0.697953322019683\\
+Lattice sound speed, standard lattices & $\cs^2$ & $1/3$\\
+
+\end{constants}
+
+%----------------------------------------------------------------------------------------
+%	SYMBOLS
+%----------------------------------------------------------------------------------------
+
+\begin{symbols}{lll}
+
+$Q$ & number of discrete velocities & \\
+$D$ & spatial dimension & \\
+$\vc_i$ & discrete velocity $i$, $i = 0,\dots,Q-1$ & lattice units \\
+$w_i$ & quadrature weight of velocity $i$ & \\
+$\cs^2$ & squared lattice sound speed & lattice units \\
+$\bar{i}$ & index of the velocity opposite to $i$, $\vc_{\bar{i}} = -\vc_i$ & \\
+$f_i$ & population (distribution) travelling with $\vc_i$ & \\
+$\langle g \rangle$ & weighted lattice sum $\sum_i w_i\, g(\vc_i)$ & \\
+$\Delta^{(2n)}$ & fully symmetric isotropic tensor of rank $2n$ & \\
+
+\addlinespace
+
+$\rho$ & density & lattice units \\
+$\vu$ & velocity & lattice units \\
+$\delta_{\alpha\beta}$ & Kronecker delta & \\
+
+\end{symbols}
+
+%----------------------------------------------------------------------------------------
+%	CHAPTERS
+%----------------------------------------------------------------------------------------
+
+\mainmatter
+
+\pagestyle{thesis}
+
+\include{Chapters/Chapter1}
+\include{Chapters/Chapter2}
+\include{Chapters/Chapter3}
+\include{Chapters/Chapter4}
+\include{Chapters/Chapter5}
+
+%----------------------------------------------------------------------------------------
+%	APPENDICES
+%----------------------------------------------------------------------------------------
+
+\appendix
+
+% No appendices yet. The API reference is generated by Sphinx from the docstrings:
+% https://cerg-flux-lab.github.io/fluxlb/
+% \include{Appendices/AppendixA}
+
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+
+\printbibliography[heading=bibintoc]
+
+%----------------------------------------------------------------------------------------
+
+\end{document}

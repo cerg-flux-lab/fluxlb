@@ -1,0 +1,80 @@
+% Notation at a glance. Left: one lattice node (D2Q9) with velocities c_i, weight classes,
+% an opposite pair and the Greek component indices. Right: the distribution tensor f of shape
+% [Q, *spatial], velocity index first, so f_i is one spatial slab.
+\begin{tikzpicture}[
+  >={Stealth[length=2mm]},
+  vel/.style={-{Stealth[length=2mm]}, line width=0.9pt},
+  idx/.style={font=\scriptsize, inner sep=1pt},
+  note/.style={font=\scriptsize, gray!80!black, align=center},
+  slab/.style={draw=black!60, fill=white, line width=0.5pt},
+  link/.style={densely dashed, gray!70!black, line width=0.6pt},
+]
+\colorlet{wrest}{black!70}
+\colorlet{waxis}{blue!70!black}
+\colorlet{wdiag}{red!70!black}
+\colorlet{pair}{green!45!black}
+
+% ---- left: one lattice node ----
+\begin{scope}
+  \draw[gray!40, step=1] (-1.4,-1.4) grid (1.4,1.4);
+  \foreach \i/\x/\y in {2/0/1, 4/0/-1} {
+    \draw[vel, waxis] (0,0) -- (\x,\y);
+    \node[idx, waxis] at ({1.25*\x + 0.2*\y}, {1.25*\y + 0.2*\x}) {$\i$};
+  }
+  \foreach \i/\x/\y in {5/1/1, 6/-1/1, 7/-1/-1, 8/1/-1} {
+    \draw[vel, wdiag] (0,0) -- (\x,\y);
+    \node[idx, wdiag] at ({1.2*\x}, {1.2*\y}) {$\i$};
+  }
+  % the opposite pair 1 <-> 3
+  \draw[vel, pair, line width=1.3pt] (0,0) -- (1,0);
+  \draw[vel, pair, line width=1.3pt] (0,0) -- (-1,0);
+  \node[idx, pair] at (1.22,0.22) {$1$};
+  \node[idx, pair] at (-1.15,0.22) {$3 = \bar{1}$};
+  \fill[wrest] (0,0) circle (2.2pt);
+  \node[idx, wrest, below right=2pt] at (0,0) {$0$};
+
+  % Greek component indices (free column to the left of the grid)
+  \draw[->, gray!70!black, line width=0.6pt] (-3.1,-0.6) -- (-2.5,-0.6) node[right, font=\scriptsize, inner sep=1pt] {$x$};
+  \draw[->, gray!70!black, line width=0.6pt] (-3.1,-0.6) -- (-3.1,0.0) node[above, font=\scriptsize, inner sep=1pt] {$y$};
+  \node[note, anchor=south, text width=2.2cm] at (-2.75,0.35) {$\alpha,\beta \in \{x, y\}$\\ $c_{i\alpha}$: component\\ $\alpha$ of $\vc_i$};
+
+  \node[font=\small\bfseries] at (0,-1.85) {one lattice node};
+  \node[note, text width=4.6cm, anchor=north] at (0,-2.05)
+    {$\vc_i$, $i = 0,\dots,Q-1$ (here D2Q9, $Q = 9$)\\
+     colour: weight class $w_i$, with $\cs^2 = 1/3$\\
+     $\vc_{\bar{i}} = -\vc_i$: the pair $1 \leftrightarrow 3$ shown};
+\end{scope}
+
+% ---- right: the distribution tensor f[Q, *spatial] ----
+\begin{scope}[shift={(5.4,-1.4)}]
+  \pgfmathsetmacro{\dx}{0.30}
+  \pgfmathsetmacro{\dy}{0.27}
+  \foreach \k in {8,7,...,0} {
+    \ifnum\k=2
+      \draw[slab, fill=blue!12] ({\k*\dx},{\k*\dy}) rectangle ({\k*\dx+2.2},{\k*\dy+1.8});
+    \else
+      \draw[slab] ({\k*\dx},{\k*\dy}) rectangle ({\k*\dx+2.2},{\k*\dy+1.8});
+    \fi
+    \ifnum\k>0
+      \node[idx, anchor=west] at ({\k*\dx+0.1},{\k*\dy+1.8-0.5*\dy}) {$f_{\k}$};
+    \fi
+  }
+  % front slab: spatial grid
+  \draw[gray!45, step=0.44, shift={(0,0)}] (0,0) grid (2.2,1.76);
+  \draw[slab, fill=none] (0,0) rectangle (2.2,1.8);
+  \node[font=\small, fill=white, inner sep=2pt] at (1.1,0.9) {$f_0$};
+
+  % axes
+  \draw[->, gray!70!black, line width=0.6pt] (0,-0.3) -- (2.2,-0.3) node[midway, below, font=\scriptsize] {spatial axes $x, y$ (and $z$ in 3D)};
+  \draw[->, gray!70!black, line width=0.6pt] ({8*\dx+2.2+0.35},{-0.05}) -- ({8*\dx+2.2+0.35},{8*\dy+1.8})
+    node[midway, right, font=\scriptsize, align=left] {axis 0\\ $i = 0,\dots,Q-1$};
+
+  \node[font=\small\bfseries] at (2.6,{8*\dy+1.8+0.5}) {distribution tensor $f$, shape $[Q, *\text{spatial}]$};
+  \node[note, text width=5.6cm, anchor=north] at (2.6,-0.85)
+    {$f_i$ is one spatial slab: the population travelling with $\vc_i$\\
+     every lattice sum $\sum_i$, e.g.\ $\langle g\rangle = \sum_i w_i\, g(\vc_i)$, reduces along axis~0};
+\end{scope}
+
+% ---- link arrow 2 to slab f_2 ----
+\draw[link] (0.28,1.45) to[out=35, in=180] ({5.4+2*0.30+0.05},{-1.4+2*0.27+1.8-0.5*0.27});
+\end{tikzpicture}
