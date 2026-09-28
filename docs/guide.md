@@ -6,7 +6,7 @@ written in LaTeX, lives in `docs/guide/` of the repository, and is mirrored to t
 Overleaf.
 
 - **PDF (latest build):** <https://cerg-flux-lab.github.io/fluxlb/guide/fluxlb-guide.pdf>
-- **Source:** [`docs/guide/main.tex`](https://github.com/cerg-flux-lab/fluxlb/tree/main/docs/guide)
+- **Source:** [`docs/guide/fluxlb-guide.tex`](https://github.com/cerg-flux-lab/fluxlb/tree/main/docs/guide)
 
 Part I covers the device and precision utilities, the velocity sets, and the tests that
 verify them. Later parts will follow the solver as it is built: streaming, collision
@@ -22,5 +22,5 @@ read the {doc}`api/index`.
 
 ```bash
 cd docs/guide
-latexmk -pdf main.tex      # needs a TeX Live with biber
+latexmk -pdf fluxlb-guide.tex      # needs a TeX Live with biber
 ```

@@ -51,13 +51,13 @@ jobs:
         uses: xu-cheng/latex-action@v3
         with:
           working_directory: docs/guide
-          root_file: main.tex
+          root_file: fluxlb-guide.tex
           latexmk_use_lualatex: false
 
       - name: Add PDF to site
         run: |
           mkdir -p docs/_build/html/guide
-          cp docs/guide/main.pdf docs/_build/html/guide/fluxlb-guide.pdf
+          cp docs/guide/fluxlb-guide.pdf docs/_build/html/guide/fluxlb-guide.pdf
 
       - uses: actions/upload-pages-artifact@v4
         with:

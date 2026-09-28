@@ -47,6 +47,19 @@ shape $[Q, *\text{spatial}]$, so that index~0 runs over velocities. The opposite
 of $i$ is $\bar{i}$, with $\vc_{\bar{i}} = -\vc_i$. Greek indices label spatial components
 and $\delta_{\alpha\beta}$ is the Kronecker delta. The weighted lattice sum is
 $\langle g \rangle = \sum_i w_i\, g(\vc_i)$.
+\Cref{fig:notation} collects these conventions in one picture.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-notation}\end{adjustbox}
+\caption{Notation. Left: one D2Q9 node with its $Q$ velocities $\vc_i$, indexed
+$0,\dots,Q-1$; colour marks the weight class $w_i$ and the opposite pair
+$\vc_3 = \vc_{\bar{1}} = -\vc_1$ is highlighted. Greek indices label spatial components,
+$c_{i\alpha}$. Right: the distribution tensor $f$ of shape $[Q, *\text{spatial}]$. Axis~0 runs
+over velocities, so $f_i$ is one spatial slab and every lattice sum $\sum_i$, including
+$\langle g \rangle$, is a reduction along that axis.}
+\label{fig:notation}
+\end{figure}
 
 %----------------------------------------------------------------------------------------
 
@@ -67,7 +80,6 @@ throughput and Apple's MPS backend has no fp64 at all, so the accumulation dtype
 per-device decision made in one place (\cref{sec:precision}).
 \end{description}
 
-\begin{draft}[why these two conventions follow from the physics and the hardware]
 In the weakly compressible regime the lattice Boltzmann method simulates, the pressure is
 $p = \cs^2\rho$ and the density varies by $O(\mathrm{Ma}^2)$ about its mean. The physically
 meaningful signal in $\rho = \sum_i f_i$ is therefore a small deviation of a sum of $Q$
@@ -90,7 +102,6 @@ conservation tests must then tolerate a per-step mass error of order $Q\varepsil
 \approx 10^{-6}$ instead of $10^{-15}$, and long runs on MPS should be treated as
 development runs, not as reference results. That is the reason the fallback warns rather
 than fails.
-\end{draft}
 
 \begin{figure}[h]
 \centering
