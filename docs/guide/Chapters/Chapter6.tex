@@ -1,0 +1,62 @@
+% Chapter 6: development workflow
+
+\chapter{Development workflow}
+
+\label{Chapter6}
+
+%----------------------------------------------------------------------------------------
+
+\section{Commands}
+
+\begin{lstlisting}[style=sh]
+conda activate fluxlb            # or: pip install -e ".[dev]"
+pytest                           # full suite;  pytest -m smoke  for the fast subset
+ruff check . && ruff format .    # lint and format
+mypy fluxlb                      # type check
+pre-commit install               # once; hooks run ruff and whitespace fixes on commit
+\end{lstlisting}
+
+Pre-commit hooks rewrite files (trailing whitespace, end-of-file, \code{ruff format}) and
+abort the commit so the fixes can be reviewed; stage them and commit again. On the CUDA node,
+install \code{torch} from the matching PyTorch index before the editable install (see
+\file{environment.yml}). The CUDA-only tests use the \code{gpu} marker declared in
+\file{pyproject.toml}.
+
+%----------------------------------------------------------------------------------------
+
+\section{Working mode}
+
+The maintainer hand-writes scientific and algorithmic code: stencils, equilibrium, collision
+operators, boundary conditions, losses, architectures. The assistant reviews against theory,
+the conventions and the collision-seam invariant, writes Tier~3 code to specification, and
+drafts skeletons with bodies left for the maintainer. This guide follows the same rule:
+theory drafted at the maintainer's request is held in a blue box and read as unverified until
+the maintainer has revised it and removed the box. All theory in Part~I has been verified.
+
+%----------------------------------------------------------------------------------------
+
+\section{This guide}
+
+The guide lives in \file{docs/guide/} of the \code{fluxlb} repository and is mirrored to the
+\code{fluxlb\_guide} repository, which Overleaf syncs. The mirror is a \code{git subtree}:
+\begin{lstlisting}[style=sh]
+git subtree push --prefix=docs/guide guide main    # fluxlb -> fluxlb_guide (then pull in Overleaf)
+git subtree pull --prefix=docs/guide guide main --squash   # Overleaf edits -> fluxlb
+\end{lstlisting}
+Build locally with \code{latexmk -pdf fluxlb-guide.tex}; the bibliography needs \code{biber}.
+
+\section{API reference}
+
+The API reference is not part of this guide. Sphinx generates it from the docstrings and
+publishes it, together with the roadmap and this PDF, at
+\url{https://cerg-flux-lab.github.io/fluxlb/}. The split is deliberate: theory and design
+rationale are written once, here; signatures and behaviour are documented once, in the code.
+Docstrings therefore explain physics and intent, not only the signature. \Cref{fig:docs} shows
+the pipeline.
+
+\begin{figure}[h]
+\centering
+\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-docs-pipeline}\end{adjustbox}
+\caption{Documentation pipeline. Two sources with one owner each feed a single site.}
+\label{fig:docs}
+\end{figure}

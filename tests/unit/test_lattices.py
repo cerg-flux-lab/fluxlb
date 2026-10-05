@@ -121,6 +121,13 @@ def test_isotropy_order_is_declared(lattice):
     assert lattice.isotropy_order >= 2 and lattice.isotropy_order % 2 == 0
 
 
+def test_equilibrium_order_is_supported_by_isotropy(lattice):
+    """An order-N Hermite truncation needs a quadrature exact to degree 2N."""
+    assert isinstance(lattice.equilibrium_order, int)
+    assert lattice.equilibrium_order >= 1
+    assert 2 * lattice.equilibrium_order <= lattice.isotropy_order
+
+
 def test_fourth_moment_is_isotropic(lattice, dtype):
     if lattice.isotropy_order < 4:
         pytest.skip(
@@ -248,12 +255,26 @@ class _Bad(lattices.Lattice):
     Q = 3
     D = 1
     isotropy_order = 2
+    equilibrium_order = 1
 
 
 def _bad(c, w=None, opp=None):
     w = torch.tensor([0.5, 0.25, 0.25], dtype=torch.float64) if w is None else w
     opp = torch.tensor([0, 2, 1]) if opp is None else opp
     return _Bad(c=c, w=w, opp=opp, cs2=0.5)
+
+
+def test_rejects_equilibrium_order_above_isotropy():
+    class _TooHigh(_Bad):
+        equilibrium_order = 2
+
+    with pytest.raises(ValueError, match="equilibrium_order"):
+        _TooHigh(
+            c=torch.tensor([[0], [1], [-1]]),
+            w=torch.tensor([0.5, 0.25, 0.25], dtype=torch.float64),
+            opp=torch.tensor([0, 2, 1]),
+            cs2=0.5,
+        )
 
 
 def test_rejects_non_integer_velocities():
