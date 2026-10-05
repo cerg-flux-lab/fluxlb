@@ -5,9 +5,9 @@ only the signature, so this reference is meant to be read alongside the user gui
 
 ```{toctree}
 :maxdepth: 2
+:glob:
 
-core.gpu
-core.lattices
+*
 ```
 
 ## Package layout
@@ -20,5 +20,6 @@ core.lattices
 | `fluxlb.data` | dataset generation, IO, loaders |
 | `fluxlb.eval` | metrics, benchmarks, leaderboard |
 
-Only modules that are implemented and tested appear in the reference. Pages are added as
-modules land.
+Only modules that are implemented and tested appear in the reference. A page is generated
+at build time for every `fluxlb` module imported by a test under `tests/unit`, so a module
+enters the reference when its unit test lands. Nothing is listed by hand.

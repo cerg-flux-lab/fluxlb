@@ -51,8 +51,9 @@ The API reference is not part of this guide. Sphinx generates it from the docstr
 publishes it, together with the roadmap and this PDF, at
 \url{https://cerg-flux-lab.github.io/fluxlb/}. The split is deliberate: theory and design
 rationale are written once, here; signatures and behaviour are documented once, in the code.
-Docstrings therefore explain physics and intent, not only the signature. \Cref{fig:docs} shows
-the pipeline.
+Docstrings therefore explain physics and intent, not only the signature. Pages are generated
+at build time, one for each module imported by a test under \file{tests/unit}, so a module
+enters the reference when its unit test lands. \Cref{fig:docs} shows the pipeline.
 
 \begin{figure}[h]
 \centering
