@@ -52,7 +52,7 @@ velocities reproducing the Gaussian moments
 \label{eq:gaussian-moments}
 \end{equation}
 where $\Delta^{(m)}$ is the sum over all pairings of the indices of products of Kronecker
-deltas. These are exactly the isotropy identities checked in \cref{Chapter4}, with
+deltas. These are exactly the isotropy identities checked in \cref{Chapter5}, with
 $\theta = \cs^2$. The \code{isotropy\_order} attribute records the largest even $m$ for
 which \cref{eq:gaussian-moments} holds.
 
@@ -68,7 +68,7 @@ is the same product in three dimensions; D3Q19 drops the eight corner abscissae 
 redistributes weight while keeping degree-5 exactness, hence fourth-order isotropy
 \parencite{QianHumieresLallemand1992,Kruger2017}.
 
-\paragraph{What each order buys.}
+\paragraph{Isotropy order and the recovered equations.}
 \Cref{fig:ladder} summarises the correspondence.
 \begin{itemize}[nosep]
 \item \textbf{Order 2} (D2Q5). Scalar transport. The advection--diffusion equation needs
@@ -168,18 +168,22 @@ follow.
 
 \begin{table}[h]
 \centering\small
-\begin{tabular}{@{}lcccccl@{}}
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{@{}lccccccl@{}}
 \toprule
-Lattice & $Q$ & $D$ & Isotropy order & $\cs^2$ & Distinct weights & Intended use \\
+Lattice & $Q$ & $D$ & Isotropy order & Equilibrium order & $\cs^2$ & Distinct weights & Intended use \\
 \midrule
-D2Q5  & 5  & 2 & 2 & $1/3$   & 2 & scalar transport only \\
-D2Q9  & 9  & 2 & 4 & $1/3$   & 3 & isothermal flow \\
-D2Q37 & 37 & 2 & 8 & $1/r^2$ & 8 & thermal / compressible \\
-D3Q19 & 19 & 3 & 4 & $1/3$   & 3 & isothermal flow \\
-D3Q27 & 27 & 3 & 4 & $1/3$   & 4 & isothermal flow, full stencil \\
+D2Q5  & 5  & 2 & 2 & 1 & $1/3$   & 2 & scalar transport only \\
+D2Q9  & 9  & 2 & 4 & 2 & $1/3$   & 3 & isothermal flow \\
+D2Q37 & 37 & 2 & 8 & 4 & $1/r^2$ & 8 & thermal / compressible \\
+D3Q19 & 19 & 3 & 4 & 2 & $1/3$   & 3 & isothermal flow \\
+D3Q27 & 27 & 3 & 4 & 2 & $1/3$   & 4 & isothermal flow, full stencil \\
 \bottomrule
 \end{tabular}
-\caption{Implemented lattices. $r = 1.19697977039307435897239$ for D2Q37.}
+\end{adjustbox}
+\caption{Implemented lattices. $r = 1.19697977039307435897239$ for D2Q37. The equilibrium
+order is the highest Hermite truncation the quadrature supports, $\lfloor$isotropy
+order$/2\rfloor$; see \cref{Chapter4}.}
 \label{tab:catalogue}
 \end{table}
 
@@ -221,6 +225,27 @@ moments to be exact, and the diffusive flux needs only second-order isotropy. Bo
 giving the advection--diffusion equation with $\kappa = \cs^2(\tau_g - \tfrac12)$
 \parencite{Kruger2017}. This is why the lattice is classed as scalar transport only and why
 adding it to the flow solver's lattice list would be an error, not a choice.
+
+\file{lattices.py} sets \code{equilibrium\_order = 1} on D2Q5, so \code{equilibrium()}
+builds the linear form above by default and rejects order~2. Some advection--diffusion
+codes use the full quadratic equilibrium on D2Q5. The reason, and the reason FluxLB does
+not, is as follows. In the Chapman--Enskog expansion of the scalar scheme the diffusive
+flux is obtained from the divergence of the equilibrium second moment. The linear form
+supplies $C\cs^2\delta_{\alpha\beta}$ only, so the recovered equation carries an additional
+term of order $\tau_g\,\partial_\beta(C u_\alpha u_\beta)$: a velocity-dependent,
+anisotropic numerical diffusion of order $\mathrm{Ma}^2$ that vanishes for a uniform carrier
+velocity and grows where the velocity varies in space or time
+\parencite{Chopard2009,Kruger2017}. The quadratic term supplies the missing
+$C u_\alpha u_\beta$ and cancels that error, but only on a lattice whose fourth-order
+moments are isotropic. On D2Q9 the cancellation is exact. On D2Q5 the quadratic term gives a
+vanishing off-diagonal moment and a diagonal $C(\cs^2 + u_x^2 - u_y^2/2)$, which corrects
+the error along the axes and not off them. Order~2 on D2Q5 is a partial,
+direction-dependent correction.
+
+FluxLB uses order~1 on D2Q5. For a scalar problem in which the carrier velocity varies
+enough for the $\mathrm{Ma}^2$ term to matter, use D2Q9 with order~2, which is the correct
+correction. The cost is nine populations instead of five; the scalar solve already shares
+the grid of the D2Q9 flow field. Requesting order~2 on D2Q5 raises \code{ValueError}.
 
 \subsection{D2Q37}
 
@@ -354,6 +379,10 @@ acc = accumulation_dtype(device)
 rho = f.sum(dim=0, dtype=acc).to(f.dtype)
 mom = torch.einsum("qa,q...->a...", lat.c.to(acc), f.to(acc)).to(f.dtype)
 \end{lstlisting}
+
+In practice the two reductions are not written by hand: \code{moments()} in
+\file{equilibrium.py} performs both with the same precision policy and is the function
+collision operators call (\cref{Chapter4}).
 
 Streaming is not yet implemented; when it is, each population $f_i$ rolls by
 \code{lat.shifts[i]} along the spatial axes, and bounce-back reads $f_{\bar{i}}$ via

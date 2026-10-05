@@ -1,99 +1,174 @@
-% Chapter 4: verification
+% Chapter 4: conserved moments and the discrete equilibrium
 
-\chapter{Verification}
+\chapter{Moments and equilibrium}
 
 \label{Chapter4}
 
-%----------------------------------------------------------------------------------------
-
-\section{Lattice identities checked by the tests}
-
-\file{tests/unit/test\_lattices.py} is parametrised over every implemented lattice and over
-fp32 and fp64. The tests assert
-\begin{align}
-\langle 1 \rangle &= 1, \\
-\langle c_\alpha \rangle = \langle c_\alpha c_\beta c_\gamma \rangle &= 0, \\
-\langle c_\alpha c_\beta \rangle &= \cs^2\,\delta_{\alpha\beta}, \\
-\langle c_\alpha c_\beta c_\gamma c_\delta \rangle &= \cs^4\,\Delta^{(4)}_{\alpha\beta\gamma\delta}
-  &&\text{if } \code{isotropy\_order} \ge 4, \\
-\langle c_{\alpha_1}\cdots c_{\alpha_5} \rangle = 0,\quad
-\langle c_{\alpha_1}\cdots c_{\alpha_6} \rangle &= \cs^6\,\Delta^{(6)}
-  &&\text{if } \code{isotropy\_order} \ge 6, \\
-\langle c_{\alpha_1}\cdots c_{\alpha_7} \rangle = 0,\quad
-\langle c_{\alpha_1}\cdots c_{\alpha_8} \rangle &= \cs^8\,\Delta^{(8)}
-  &&\text{if } \code{isotropy\_order} \ge 8,
-\end{align}
-where $\Delta^{(2n)}$ is the fully symmetric isotropic tensor, the sum over all pairings of
-the $2n$ indices of products of Kronecker deltas (3 terms at fourth order, 15 at sixth, 105
-at eighth). The test builds $\Delta^{(2n)}$ generically by enumerating pairings. Tolerances
-are in \cref{tab:tolerances}.
-
-\begin{table}[h]
-\centering\small
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Identity & fp32 tolerance & fp64 tolerance \\
-\midrule
-orders 0--3 & $10^{-6}$ & $10^{-12}$ \\
-order 4     & $10^{-5}$ & $10^{-11}$ \\
-orders 5--6 & $10^{-4}$ & $10^{-10}$ \\
-orders 7--8 & $10^{-3}$ & $10^{-9}$ \\
-\bottomrule
-\end{tabular}
-\caption{Absolute tolerances. Higher orders involve $|\vc|^{8}$ up to $3^8$ for D2Q37, hence
-the looser bounds.}
-\label{tab:tolerances}
-\end{table}
-
-Further checks: \code{opp} is an int64 involution with $\vc_{\bar i} = -\vc_i$ and
-$w_{\bar i} = w_i$; velocities are distinct integers with the rest velocity first;
-\code{shifts} equals \code{c} as Python ints; constants are built in the requested dtype;
-fp64 constants differ from upcast fp32 ones; \code{.to(float64)} casts only the float
-buffers; the state dict is empty and there are no parameters; the module moves to the device
-\code{get\_device()} selects; D2Q5 fails fourth-order isotropy; D2Q37's second moment equals
-$1/r^2$; non-integer velocities and mismatched shapes raise \code{ValueError}. One CUDA-only
-test checks \code{f[opp]} indexing on the GPU.
+\file{fluxlb/core/equilibrium.py} holds the two halves of the map between populations and
+macroscopic fields: \code{moments()} projects a population field onto the collision
+invariants, and \code{equilibrium()} reconstructs the discrete Maxwell--Boltzmann
+distribution that carries them, as a Hermite expansion truncated at the order the lattice's
+quadrature supports. \Cref{sec:eq-theory} gives the theory and \cref{sec:eq-impl} the
+implementation notes.
 
 %----------------------------------------------------------------------------------------
 
-\section{Device utilities}
+\section{Theory}\label{sec:eq-theory}
 
-\file{tests/unit/test\_gpu.py} covers device resolution and the environment override, both
-branches of \code{accumulation\_dtype}, the query functions, byte formatting, the memory
-no-ops on CPU, \code{track\_memory} on CPU, and \code{Timer}. Three tests carry the
-\code{gpu} marker and run only with CUDA: GPU info fields, peak-memory tracking, and the
-CUDA device summary.
+The density and momentum are the zeroth and first velocity moments of the populations,
+\begin{equation}
+\rho = \sum_i f_i, \qquad \rho\vu = \sum_i \vc_i f_i,
+\label{eq:moments}
+\end{equation}
+and the velocity is their ratio. For every collision operator in the classical core (BGK,
+TRT, MRT) these two moments are collision invariants: the post-collision populations have
+the same $\rho$ and $\rho\vu$ as the pre-collision ones. Since the equilibrium is built from
+these values, $f$ and $f^{\mathrm{eq}}$ have the same $\rho$ and $\rho\vu$ by construction,
+and mass and momentum conservation of the solver reduce to \code{moments()} returning the
+same values before and after collision. Rounding error in $\rho$ and $\vu$ enters
+$f^{\mathrm{eq}}$ at the next step and is not corrected by the relaxation, which is the
+reason for the accumulation policy of \cref{sec:precision}.
+
+With the Gauss--Hermite construction of \cref{sec:lattice-theory}, the continuous
+Maxwell--Boltzmann distribution at the lattice reference temperature is expanded in tensor
+Hermite polynomials of the scaled velocity $\boldsymbol{\xi} = \vc/\cs$ and evaluated at the
+discrete velocities, with the lattice weights as the quadrature weights. Truncating at order
+$N$ gives
+\begin{equation}
+f^{\mathrm{eq}}_i = w_i\,\rho \sum_{n=0}^{N} \frac{1}{n!}\,
+\mathbf{a}^{(n)} : \mathbf{H}^{(n)}(\boldsymbol{\xi}_i),
+\qquad \mathbf{a}^{(n)} = \left(\frac{\vu}{\cs}\right)^{\otimes n},
+\label{eq:hermite-eq}
+\end{equation}
+where the isothermal Hermite coefficients $\mathbf{a}^{(n)}$ are the $n$-fold tensor products
+of the scaled velocity \parencite{Grad1949,ShanYuanChen2006}. Contracting each Hermite
+tensor with $\vu$ repeated $n$ times collapses the terms to polynomials in
+$\vc_i\cdot\vu$ and $\vu\cdot\vu$ alone. Writing $\cs^2$ for the reference temperature in
+lattice units, the series is
+\begin{equation}
+\begin{aligned}
+f^{\mathrm{eq}}_i = w_i\,\rho\,\Big[\,1
+&+ \frac{\vc_i\cdot\vu}{\cs^2}
+ + \frac{(\vc_i\cdot\vu)^2 - \cs^2\,\vu\cdot\vu}{2\cs^4} \\
+&+ \frac{(\vc_i\cdot\vu)^3 - 3\cs^2\,(\vc_i\cdot\vu)\,\vu\cdot\vu}{6\cs^6} \\
+&+ \frac{(\vc_i\cdot\vu)^4 - 6\cs^2\,(\vc_i\cdot\vu)^2\,\vu\cdot\vu
+        + 3\cs^4\,(\vu\cdot\vu)^2}{24\cs^8}
+ + \cdots\Big],
+\end{aligned}
+\label{eq:hermite-terms}
+\end{equation}
+truncated after the term of order $N$ in $\vu$. Order $N$ includes every term below it.
+The first three terms are the second-order equilibrium of
+\textcite{QianHumieresLallemand1992}.
+
+Because the Hermite polynomials are orthogonal under the Gaussian weight, a truncation at
+order $N$ reproduces the velocity moments of the Maxwell--Boltzmann distribution exactly up
+to order $N$, provided the quadrature integrates polynomials of degree $2N$ exactly
+\parencite{ShanYuanChen2006}. The algebraic degree of the lattice is its isotropy order
+(\cref{sec:lattice-theory}), so the highest admissible truncation is
+$N_{\max} = \lfloor \code{isotropy\_order}/2 \rfloor$. \code{Lattice.equilibrium\_order}
+stores this value and the constructor enforces $2N_{\max} \le \code{isotropy\_order}$ for
+every subclass. A higher truncation on a lattice whose quadrature cannot represent it adds
+terms with incorrect moments, so requesting one raises \code{ValueError}.
+
+The admissible orders and the equations they recover:
+\begin{itemize}[nosep]
+\item \textbf{Order 1} (D2Q5). The linear equilibrium for scalar transport. The zeroth and
+      first moments are exact, and the advection--diffusion equation requires no others.
+      \Cref{Chapter3} gives the reason order~2 is not offered on this lattice.
+\item \textbf{Order 2} (D2Q9, D3Q19, D3Q27). The isothermal Navier--Stokes equilibrium. The
+      second moment is exactly $\Pi^{\mathrm{eq}}_{\alpha\beta} = \rho\cs^2\delta_{\alpha\beta}
+      + \rho u_\alpha u_\beta$, as required by the Chapman--Enskog expansion for the
+      Newtonian stress. The third moment is
+      $\rho\cs^2(u_\alpha\delta_{\beta\gamma} + \text{perms})$ without the
+      $\rho u_\alpha u_\beta u_\gamma$ part; this is the $O(u^3)$ error of the standard
+      lattices.
+\item \textbf{Orders 3 and 4} (D2Q37). The third and fourth moments are exact. The third
+      includes the $\rho u_\alpha u_\beta u_\gamma$ term, which removes the cubic error and,
+      with a temperature field, gives the heat flux; the fourth is required for the energy
+      equation \parencite{Philippi2006,Sbragaglia2009}. The implementation is isothermal:
+      the coefficients in \cref{eq:hermite-terms} are those at the reference temperature,
+      and the terms in the temperature deviation required by a thermal model are not
+      implemented.
+\end{itemize}
+The truncation error in the velocity is of order $\mathrm{Ma}^{N+1}$ at every order, so a
+low Mach number is assumed.
 
 %----------------------------------------------------------------------------------------
 
-\section{Current status}
+\section{Implementation}\label{sec:eq-impl}
 
-\begin{table}[h]
-\centering\small
-\begin{tabular}{@{}lr@{}}
-\toprule
-\code{pytest} (whole repository) & 173 passed, 42 skipped \\
-\code{ruff check}, \code{ruff format --check} & clean \\
-\code{mypy fluxlb} & clean (40 files) \\
-\bottomrule
-\end{tabular}
-\caption{Test and static-check status at the time of writing. Skips are the CUDA-only tests
-and the higher-order identities on lattices that do not claim them.}
-\end{table}
+\paragraph{Shapes.}
+Populations are directions-first, $f[Q, \ast]$, and velocities components-first,
+$\vu[D, \ast]$, where $\ast$ stands for the spatial axes. Every reduction is over
+\code{dim=0}, and \code{lattice.c} with shape $[Q, D]$ contracts against either field
+directly. The two contractions are
+\begin{lstlisting}[style=py]
+rho = torch.sum(f, dim=0)                           # [*]
+mom = torch.einsum("qa,q...->a...", lattice.c, f)   # [D, *]
+cu  = torch.einsum("qa,a...->q...", lattice.c, u)   # [Q, *]
+\end{lstlisting}
+The ellipsis absorbs the spatial axes; the labelled axis is always the leading one. The
+weights broadcast against $[Q, \ast]$ through
+\code{lattice.w.reshape(-1, *([1] * lattice.D))}.
 
-%----------------------------------------------------------------------------------------
+\paragraph{\code{moments(lattice, f)}.}
+Returns \code{(rho, u)} with shapes $[\ast]$ and $[D, \ast]$ in the dtype of \code{f}.
+Internally \code{f} and \code{lattice.c} are cast to \code{accumulation\_dtype(f.device)},
+both reductions and the division $\vu = \rho\vu/\rho$ are performed there, and the results
+are cast back. This is the single place the fp32-compute / fp64-accumulation policy of
+\cref{sec:precision} is applied; collision operators and diagnostics call it rather than
+reducing \code{f} themselves. Note that the momentum contraction has no reduction
+\code{dtype} argument, so unlike the \code{sum} idiom in \cref{sec:precision} an fp64 copy
+of \code{f} is materialised for the duration of the call. The cast is differentiable, so
+gradients flow through \code{moments()} to \code{f}.
 
-\section{Adding a lattice}
+\paragraph{\code{equilibrium(lattice, rho, u, order=None)}.}
+Returns $f^{\mathrm{eq}}$ with shape $[Q, \ast]$ in the dtype of \code{rho}. \code{order}
+defaults to \code{lattice.equilibrium\_order} and must satisfy
+$1 \le \code{order} \le \code{lattice.equilibrium\_order}$; anything else raises
+\code{ValueError} naming the lattice and its range. A lower order than the lattice supports
+is allowed, so the standard order-2 form can be compared against order~4 on D2Q37. The body
+binds $\vc_i\cdot\vu$ and $\vu\cdot\vu$ once and accumulates the terms of
+\cref{eq:hermite-terms} in a cumulative chain of \code{if order >= n} branches, returning
+\code{w * rho * series} as a single broadcast expression:
+\begin{lstlisting}[style=py]
+w   = lattice.w.reshape(-1, *([1] * lattice.D))
+cs2 = lattice.cs2
+cu  = torch.einsum("qa,a...->q...", lattice.c, u)
+uu  = torch.sum(u * u, dim=0)
+series = 1.0 + cu / cs2
+if order >= 2:
+    series = series + (cu**2 - cs2 * uu) / (2 * cs2**2)
+if order >= 3:
+    series = series + ...                           # third-order term
+if order >= 4:
+    series = series + ...                           # fourth-order term
+return w * rho * series
+\end{lstlisting}
+There is no accumulation cast. The equilibrium is a pointwise reconstruction, not a
+reduction over directions, so its rounding error does not enter the invariants and the
+compute dtype is used. There are no in-place operations, so gradients flow to \code{rho},
+\code{u}, and through \code{lattice.cs2} if it is made learnable.
 
-\begin{enumerate}[nosep]
-\item Subclass \code{Lattice}; set \code{Q}, \code{D}, \code{isotropy\_order}.
-\item In \code{\_\_init\_\_}, build \code{c} (int64), \code{w} (float64 from exact
-      fractions) and \code{opp} (int64, preferably derived from the velocity list), then call
-      \code{super().\_\_init\_\_(c=c, w=w, opp=opp, cs2=..., dtype=dtype)}.
-\item Wrap hand-laid-out tables in \code{\# fmt: off} / \code{\# fmt: on} so the formatter
-      keeps the shell layout.
-\item State the ordering convention in the docstring; \code{opp} and the boundary code depend
-      on it.
-\item Add the class to \code{LATTICES} in the test file. The isotropy tests will reject a
-      wrong weight or velocity immediately.
-\end{enumerate}
+\paragraph{\code{Lattice.equilibrium\_order}.}
+A class attribute beside \code{isotropy\_order}, set to
+$\lfloor\code{isotropy\_order}/2\rfloor$ on every implemented lattice
+(\cref{tab:catalogue}). \code{Lattice.\_\_init\_\_} raises \code{ValueError} if a subclass
+declares an order its isotropy cannot support, so a mismatched lattice cannot be
+constructed.
+
+\paragraph{Usage.}
+\begin{lstlisting}[style=py]
+from fluxlb.core.equilibrium import equilibrium, moments
+from fluxlb.core.lattices import D2Q9, D2Q37
+
+lat = D2Q9()
+rho, u = moments(lat, f)                 # fp64 accumulation, fp32 results
+feq = equilibrium(lat, rho, u)           # order 2, the lattice default
+
+lat37 = D2Q37()
+feq4 = equilibrium(lat37, rho, u)        # order 4
+feq2 = equilibrium(lat37, rho, u, order=2)   # explicit lower order
+equilibrium(lat, rho, u, order=3)        # ValueError: outside 1..2 for D2Q9
+\end{lstlisting}

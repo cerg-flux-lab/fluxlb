@@ -42,7 +42,15 @@ class Lattice(nn.Module):
         Highest even order at which the weighted velocity moments are isotropic. Order 2 is
         enough for scalar transport (advection-diffusion); order 4 is required to recover the
         isothermal Navier-Stokes equations; order 6 for thermal and compressible models.
-        The tests check exactly the orders a lattice claims.
+        The tests check exactly the orders a lattice claims. This is the algebraic degree of
+        the lattice as a Gauss-Hermite quadrature, and it bounds ``equilibrium_order``: a
+        Hermite truncation at order ``N`` is exact only if the quadrature integrates
+        polynomials of degree ``2N``, so ``equilibrium_order = isotropy_order // 2``.
+    equilibrium_order : int
+        Highest order ``N`` at which :func:`fluxlb.core.equilibrium.equilibrium` may truncate
+        the Hermite expansion on this lattice, and the order it uses by default. Set to
+        ``isotropy_order // 2`` on every lattice here; the constructor enforces
+        ``2 * equilibrium_order <= isotropy_order`` for any subclass.
     c : torch.Tensor
         Discrete velocities, shape ``[Q, D]``, in the compute dtype so they can multiply
         ``f`` directly in the momentum sum.
@@ -61,6 +69,7 @@ class Lattice(nn.Module):
     Q: int
     D: int
     isotropy_order: int
+    equilibrium_order: int
 
     c: torch.Tensor
     w: torch.Tensor
@@ -83,6 +92,12 @@ class Lattice(nn.Module):
         than an up-cast of fp32 ones.
         """
         super().__init__()
+        if 2 * self.equilibrium_order > self.isotropy_order:
+            raise ValueError(
+                f"{type(self).__name__}: equilibrium_order {self.equilibrium_order} needs "
+                f"isotropy to order {2 * self.equilibrium_order}, lattice claims "
+                f"{self.isotropy_order}"
+            )
         if c.shape != (self.Q, self.D):
             raise ValueError(
                 f"{type(self).__name__}: c has shape {tuple(c.shape)}, expected {(self.Q, self.D)}"
@@ -126,6 +141,7 @@ class D2Q5(Lattice):
     Q = 5
     D = 2
     isotropy_order = 2
+    equilibrium_order = 1
 
     def __init__(self, dtype: torch.dtype = torch.float32) -> None:
         """Build the D2Q5 constants in ``dtype`` (see :class:`Lattice`)."""
@@ -150,6 +166,7 @@ class D2Q9(Lattice):
     Q = 9
     D = 2
     isotropy_order = 4
+    equilibrium_order = 2
 
     def __init__(self, dtype: torch.dtype = torch.float32) -> None:
         """Build the D2Q9 constants in ``dtype`` (see :class:`Lattice`)."""
@@ -180,14 +197,14 @@ class D2Q37(Lattice):
 
     ``cs2 = 1 / r**2`` with ``r = 1.19697977039307435897239`` the Hermite scaling factor,
     giving ``cs2 = 0.697953322...``. Weights as published (Philippi et al. 2006;
-    Sbragaglia et al. 2009); they satisfy the moment constraints to orders 0-8 to 1e-14.
-    TODO(maintainer): verify ``r`` and the eight weights against the source before relying
-    on this lattice.
+    Sbragaglia et al. 2009), verified against the source; they satisfy the moment
+    constraints to orders 0-8 to 1e-14.
     """
 
     Q = 37
     D = 2
     isotropy_order = 8
+    equilibrium_order = 4
 
     R = 1.19697977039307435897239
     """Hermite scaling factor of the ninth-order quadrature; ``cs2 = 1 / R**2``."""
@@ -238,6 +255,7 @@ class D3Q19(Lattice):
     Q = 19
     D = 3
     isotropy_order = 4
+    equilibrium_order = 2
 
     def __init__(self, dtype: torch.dtype = torch.float32) -> None:
         """Build the D3Q19 constants in ``dtype`` (see :class:`Lattice`)."""
@@ -277,6 +295,7 @@ class D3Q27(Lattice):
     Q = 27
     D = 3
     isotropy_order = 4
+    equilibrium_order = 2
 
     def __init__(self, dtype: torch.dtype = torch.float32) -> None:
         """Build the D3Q27 constants in ``dtype`` (see :class:`Lattice`)."""
