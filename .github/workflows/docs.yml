@@ -1,6 +1,9 @@
 # Documentation: Sphinx API reference plus the LaTeX user guide PDF, published to GitHub Pages.
-# Pull requests build only; pushes to main deploy. The site is the API reference; the
-# narrative and theory live in the PDF (docs/guide), which is copied into the site.
+# Pull requests build only. A push to main builds and then deploys, but only if the pushed
+# commit is the merge of a pull request into main; a direct push never deploys. The deploy
+# must run under the main ref because the github-pages environment restricts deployments
+# to that branch. The site is the API reference; the narrative and theory live in the PDF
+# (docs/guide), which is copied into the site.
 name: Docs
 
 on:
@@ -63,10 +66,33 @@ jobs:
         with:
           path: docs/_build/html
 
+  merged-pr:
+    name: Confirm the push is a merged pull request
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      merged: ${{ steps.check.outputs.merged }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq '[.[] | select(.merged_at != null and .base.ref == "main")] | length')
+          echo "merged pull requests for ${GITHUB_SHA}: ${count}"
+          if [ "${count}" -gt 0 ]; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Not a pull-request merge; skipping deploy."
+          fi
+
   deploy:
     name: Deploy to GitHub Pages
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: build
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.merged-pr.outputs.merged == 'true'
+    needs: [build, merged-pr]
     runs-on: ubuntu-latest
     permissions:
       pages: write
