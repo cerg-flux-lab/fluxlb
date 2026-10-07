@@ -210,10 +210,13 @@ headsepline,
 	substituted.
 
 	This part of the guide documents what exists so far in \code{fluxlb.core}: the device and
-	precision utilities in \file{gpu.py}, the velocity sets in \file{lattices.py}, and the
-	tests that verify them. Each concept pairs its theory with its implementation. The theory
-	has been verified by the maintainer; facts that were checked numerically against the code
-	are marked as such.
+	precision utilities in \file{gpu.py}, the velocity sets in \file{lattices.py}, the
+	conserved moments and discrete equilibrium in \file{equilibrium.py}, the streaming step in
+	\file{streaming.py}, and the tests that verify them. Together these fix the two halves of
+	the update on either side of the seam: the local equilibrium that collision relaxes
+	towards, and the exact, periodic permutation that carries the result to the neighbours.
+	Each concept pairs its theory with its implementation. The theory has been verified by
+	the maintainer; facts that were checked numerically against the code are marked as such.
 \end{abstract}
 
 %----------------------------------------------------------------------------------------
@@ -293,6 +296,7 @@ $\delta_{\alpha\beta}$ & Kronecker delta & \\
 \include{Chapters/Chapter4}
 \include{Chapters/Chapter5}
 \include{Chapters/Chapter6}
+\include{Chapters/Chapter7}
 
 %----------------------------------------------------------------------------------------
 %	APPENDICES

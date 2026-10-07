@@ -1,0 +1,60 @@
+% Push streaming on D2Q9 and the periodic wrap of torch.roll.
+\begin{tikzpicture}[
+  >={Stealth[length=2.2mm]},
+  node/.style={circle, fill=gray!25, draw=gray!60, inner sep=0pt, minimum size=6pt},
+  pop/.style={->, line width=0.9pt, blue!60!black},
+  hi/.style={->, line width=1.5pt, red!70!black},
+  lbl/.style={font=\small, inner sep=1pt},
+  note/.style={font=\small, gray!80!black, align=left},
+  cell/.style={draw, fill=blue!7, minimum size=9mm, font=\small\ttfamily},
+]
+% ---- left: push from one node to its eight neighbours ----
+\begin{scope}[shift={(0,0)}]
+  \draw[gray!30, step=2.4] (-2.5,-2.5) grid (2.5,2.5);
+  \foreach \x in {-2.4,0,2.4} \foreach \y in {-2.4,0,2.4} \node[node] at (\x,\y) {};
+  \node[node, fill=black!70] (x) at (0,0) {};
+  \node[lbl, below left=2pt] at (x) {$\mathbf{x}$};
+  % seven ordinary populations leave the node; label sits beside the arrow tip
+  \foreach \i/\dx/\dy in {2/0/1, 3/-1/0, 4/0/-1, 5/1/1, 6/-1/1, 7/-1/-1, 8/1/-1} {
+    \draw[pop] (0,0) -- ({2.4*\dx - 0.3*\dx}, {2.4*\dy - 0.3*\dy});
+    \node[lbl, blue!60!black] at ({1.55*\dx + 0.42*\dy}, {1.55*\dy - 0.42*\dx}) {$f_{\i}^{*}$};
+  }
+  % the highlighted one: f_1^*(x) becomes f_1(x + c_1)
+  \draw[hi] (0,0) -- (2.1,0);
+  \node[lbl, red!70!black, above] at (1.1,0.08) {$f_1^{*}(\mathbf{x},t)$};
+  \node[node, fill=red!70!black] at (2.4,0) {};
+  \node[lbl, red!70!black, align=center, anchor=north] at (2.4,-0.25)
+    {$f_1(\mathbf{x}+\vc_1\Delta t,\, t+\Delta t)$};
+  % rest population stays
+  \node[lbl, black!70, anchor=north east] at (-0.15,-0.35) {$f_0^{*}$ stays};
+  \node[font=\small\bfseries, align=center] at (0,-4.0) {push: every $f_i^{*}$ leaves along its own $\vc_i$};
+\end{scope}
+
+% ---- right: one direction on one axis, periodic wrap ----
+\begin{scope}[shift={(6.3,1.0)}]
+  \node[note, anchor=south west, font=\small\ttfamily] at (-0.4,1.05) {torch.roll(f[1], shifts=(+1, 0), dims=(0, 1))};
+  % before
+  \foreach \k in {0,...,4} {
+    \node[cell] (a\k) at (\k*1.0,0.4) {\k};
+  }
+  \node[lbl, left=4pt of a0] {$f_1^{*}$};
+  \node[lbl, right=4pt of a4] {$x \rightarrow$};
+  % after
+  \foreach \k in {0,...,4} {
+    \pgfmathtruncatemacro{\src}{mod(\k+4,5)}
+    \node[cell] (b\k) at (\k*1.0,-1.6) {\src};
+  }
+  \node[lbl, left=4pt of b0] {$f_1$};
+  \foreach \k in {0,...,3} {
+    \pgfmathtruncatemacro{\kk}{\k+1}
+    \draw[pop] (a\k.south) -- (b\kk.north);
+  }
+  % wrap: last cell goes to first
+  \draw[hi, rounded corners=3pt] (a4.south) -- ++(0,-0.45) -- ++(-4.0,0) -- (b0.north);
+  \node[lbl, red!70!black, anchor=west] at (4.55,-0.55) {wrap};
+  \node[note, anchor=north west, text width=6.4cm] at (-0.4,-2.35)
+    {Cell $x$ holds the value that came from $x-1$; the value leaving the last cell re-enters
+     at the first. A wall boundary overwrites that entry afterwards.};
+  \node[font=\small\bfseries] at (2.0,-5.0) {periodic by construction};
+\end{scope}
+\end{tikzpicture}
