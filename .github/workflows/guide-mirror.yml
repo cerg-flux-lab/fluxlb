@@ -17,6 +17,7 @@ on:
     paths:
       - "docs/guide/**"
       - ".github/workflows/guide-mirror.yml"
+  workflow_dispatch:   # run by hand from the Actions tab, e.g. after a credential fix
 
 concurrency:
   group: guide-mirror
@@ -33,6 +34,7 @@ env:
 jobs:
   merged-pr:
     name: Confirm the push is a merged pull request
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
       merged: ${{ steps.check.outputs.merged }}
@@ -54,7 +56,9 @@ jobs:
   mirror:
     name: Push docs/guide to fluxlb_guide
     needs: merged-pr
-    if: needs.merged-pr.outputs.merged == 'true'
+    if: >-
+      !cancelled()
+      && (github.event_name == 'workflow_dispatch' || needs.merged-pr.outputs.merged == 'true')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -75,6 +79,13 @@ jobs:
           ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
           echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/guide_deploy_key -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
 
+      - name: Fetch the mirror
+        # Must precede the split. A `git subtree pull --squash` leaves a squash commit whose
+        # message names a commit that exists only in the mirror; the split needs that object.
+        run: |
+          git remote add mirror "${MIRROR_REPO}"
+          git fetch mirror "${MIRROR_BRANCH}"
+
       - name: Split the guide subtree
         run: |
           git config user.name "github-actions[bot]"
@@ -84,8 +95,6 @@ jobs:
 
       - name: Check the mirror has nothing unpulled
         run: |
-          git remote add mirror "${MIRROR_REPO}"
-          git fetch mirror "${MIRROR_BRANCH}"
           if git merge-base --is-ancestor "mirror/${MIRROR_BRANCH}" guide-split; then
             echo "mirror/${MIRROR_BRANCH} is an ancestor of the split: fast-forward push."
           else
