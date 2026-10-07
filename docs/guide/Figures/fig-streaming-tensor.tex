@@ -1,0 +1,35 @@
+% The tensor view of stream(): per-direction roll of a [*spatial] slab, then stack.
+\begin{tikzpicture}[
+  >={Stealth[length=2.2mm]},
+  slab/.style={draw, fill=blue!7, draw=blue!60!black, minimum width=22mm, minimum height=15mm, font=\small\ttfamily},
+  oslab/.style={slab, fill=green!8, draw=green!50!black},
+  arr/.style={->, line width=1pt},
+  note/.style={font=\small, gray!80!black, align=center},
+  lbl/.style={font=\small, inner sep=1pt},
+]
+% input stack f[Q, Nx, Ny]: back slabs up and to the right, front slab drawn last
+\foreach \k in {3,2,1,0} {
+  \node[slab] (in\k) at ({0.25*\k}, {0.25*\k}) {};
+}
+\node[lbl] at (in0) {f[q]};
+\node[lbl, anchor=south] at ($(in3.north)+(-0.3,0.12)$) {$f\,[Q, N_x, N_y]$};
+\node[note, anchor=north, text width=42mm] at ($(in0.south)+(0.4,-0.25)$)
+  {one slab per direction;\\ \code{f[q]} has axes $0,\dots,D-1$};
+
+% roll
+\node[draw, rounded corners=2pt, fill=white, font=\small\ttfamily, align=left, anchor=west, inner sep=6pt] (roll) at (3.4,0)
+  {torch.roll(f[q],\\ \ shifts=lattice.shifts[q],\\ \ dims=range(D))};
+\draw[arr] (in0.east) -- (roll.west);
+\node[note, anchor=north, text width=62mm] at ($(roll.south)+(0,-0.3)$)
+  {\code{shifts[q]} $= \vc_q$ as host integers:\\ no device sync, every axis wraps};
+
+% output stack
+\foreach \k in {3,2,1,0} {
+  \node[oslab] (out\k) at ({13.0+0.25*\k}, {0.25*\k}) {};
+}
+\node[lbl] at (out0) {roll(f[q])};
+\node[lbl, anchor=south] at ($(out3.north)+(-0.3,0.12)$) {$f'\,[Q, N_x, N_y]$};
+\draw[arr] (roll.east) -- node[above=3pt, lbl, font=\small\ttfamily] {torch.stack} (out0.west);
+\node[note, anchor=north, text width=46mm] at ($(out0.south)+(0.4,-0.25)$)
+  {a new tensor; $f$ is untouched,\\ so no in-place write enters autograd};
+\end{tikzpicture}

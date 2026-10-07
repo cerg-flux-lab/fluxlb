@@ -1,62 +1,193 @@
-% Chapter 6: development workflow
+% Chapter 6: verification
 
-\chapter{Development workflow}
+\chapter{Verification}
 
 \label{Chapter6}
 
 %----------------------------------------------------------------------------------------
 
-\section{Commands}
+\section{Lattice identities checked by the tests}
 
-\begin{lstlisting}[style=sh]
-conda activate fluxlb            # or: pip install -e ".[dev]"
-pytest                           # full suite;  pytest -m smoke  for the fast subset
-ruff check . && ruff format .    # lint and format
-mypy fluxlb                      # type check
-pre-commit install               # once; hooks run ruff and whitespace fixes on commit
-\end{lstlisting}
+\file{tests/unit/test\_lattices.py} is parametrised over every implemented lattice and over
+fp32 and fp64. The tests assert
+\begin{align}
+\langle 1 \rangle &= 1, \\
+\langle c_\alpha \rangle = \langle c_\alpha c_\beta c_\gamma \rangle &= 0, \\
+\langle c_\alpha c_\beta \rangle &= \cs^2\,\delta_{\alpha\beta}, \\
+\langle c_\alpha c_\beta c_\gamma c_\delta \rangle &= \cs^4\,\Delta^{(4)}_{\alpha\beta\gamma\delta}
+  &&\text{if } \code{isotropy\_order} \ge 4, \\
+\langle c_{\alpha_1}\cdots c_{\alpha_5} \rangle = 0,\quad
+\langle c_{\alpha_1}\cdots c_{\alpha_6} \rangle &= \cs^6\,\Delta^{(6)}
+  &&\text{if } \code{isotropy\_order} \ge 6, \\
+\langle c_{\alpha_1}\cdots c_{\alpha_7} \rangle = 0,\quad
+\langle c_{\alpha_1}\cdots c_{\alpha_8} \rangle &= \cs^8\,\Delta^{(8)}
+  &&\text{if } \code{isotropy\_order} \ge 8,
+\end{align}
+where $\Delta^{(2n)}$ is the fully symmetric isotropic tensor, the sum over all pairings of
+the $2n$ indices of products of Kronecker deltas (3 terms at fourth order, 15 at sixth, 105
+at eighth). The test builds $\Delta^{(2n)}$ generically by enumerating pairings. Tolerances
+are in \cref{tab:tolerances}.
 
-Pre-commit hooks rewrite files (trailing whitespace, end-of-file, \code{ruff format}) and
-abort the commit so the fixes can be reviewed; stage them and commit again. On the CUDA node,
-install \code{torch} from the matching PyTorch index before the editable install (see
-\file{environment.yml}). The CUDA-only tests use the \code{gpu} marker declared in
-\file{pyproject.toml}.
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Identity & fp32 tolerance & fp64 tolerance \\
+\midrule
+orders 0--3 & $10^{-6}$ & $10^{-12}$ \\
+order 4     & $10^{-5}$ & $10^{-11}$ \\
+orders 5--6 & $10^{-4}$ & $10^{-10}$ \\
+orders 7--8 & $10^{-3}$ & $10^{-9}$ \\
+\bottomrule
+\end{tabular}
+\caption{Absolute tolerances. Higher orders involve $|\vc|^{8}$ up to $3^8$ for D2Q37, hence
+the looser bounds.}
+\label{tab:tolerances}
+\end{table}
+
+Further checks: \code{opp} is an int64 involution with $\vc_{\bar i} = -\vc_i$ and
+$w_{\bar i} = w_i$; velocities are distinct integers with the rest velocity first;
+\code{shifts} equals \code{c} as Python ints; constants are built in the requested dtype;
+fp64 constants differ from upcast fp32 ones; \code{.to(float64)} casts only the float
+buffers; the state dict is empty and there are no parameters; the module moves to the device
+\code{get\_device()} selects; D2Q5 fails fourth-order isotropy; D2Q37's second moment equals
+$1/r^2$; non-integer velocities and mismatched shapes raise \code{ValueError}. One CUDA-only
+test checks \code{f[opp]} indexing on the GPU.
 
 %----------------------------------------------------------------------------------------
 
-\section{Working mode}
+\section{Moments and equilibrium checked by the tests}
 
-The maintainer hand-writes scientific and algorithmic code: stencils, equilibrium, collision
-operators, boundary conditions, losses, architectures. The assistant reviews against theory,
-the conventions and the collision-seam invariant, writes Tier~3 code to specification, and
-drafts skeletons with bodies left for the maintainer. This guide follows the same rule:
-theory drafted at the maintainer's request is held in a blue box and read as unverified until
-the maintainer has revised it and removed the box. All theory in Part~I has been verified.
+\file{tests/unit/test\_equilibrium.py} is parametrised over every implemented lattice and
+over fp32 and fp64, on a $4\times5$ (2D) or $3\times4\times5$ (3D) grid with a seeded
+density $\rho \in [1, 1.1]$ and velocity $|u_\alpha| \le 0.05$. Absolute tolerances are
+$10^{-5}$ in fp32 and $10^{-12}$ in fp64.
+
+For \code{moments()}: output shapes and dtype; rest populations $w_i\rho_0$ return
+$\rho_0$ and $\vu = 0$; and fp32 moments of an fp64 field rounded to fp32 agree with the
+fp64 reference to a relative $2\times10^{-7}$ in $\rho$ and $10^{-6}$ in $\vu$, which is
+fp32 rounding of the result rather than fp32 summation error.
+
+For \code{equilibrium()} at the lattice's default order, with
+$\langle\cdot\rangle_{\mathrm{eq}} = \sum_i (\cdot)\, f^{\mathrm{eq}}_i$:
+\begin{align}
+\langle 1 \rangle_{\mathrm{eq}} &= \rho, \qquad
+\langle c_\alpha \rangle_{\mathrm{eq}} = \rho u_\alpha, \\
+\langle c_\alpha c_\beta \rangle_{\mathrm{eq}}
+  &= \rho\,(\cs^2\delta_{\alpha\beta} + u_\alpha u_\beta)
+  &&\text{if } \code{isotropy\_order} \ge 4, \\
+\langle c_\alpha c_\beta c_\gamma \rangle_{\mathrm{eq}}
+  &= \rho\,u_\alpha u_\beta u_\gamma
+     + \rho\cs^2\,(u_\alpha\delta_{\beta\gamma} + \text{2 perms})
+  &&\text{if } \code{equilibrium\_order} \ge 3, \\
+\langle c_\alpha c_\beta c_\gamma c_\delta \rangle_{\mathrm{eq}}
+  &= \rho\,u_\alpha u_\beta u_\gamma u_\delta
+     + \rho\cs^2\,(u_\alpha u_\beta\delta_{\gamma\delta} + \text{5 perms}) \nonumber \\
+  &\qquad + \rho\cs^4\Delta^{(4)}_{\alpha\beta\gamma\delta}
+  &&\text{if } \code{equilibrium\_order} \ge 4,
+\end{align}
+the Maxwell--Boltzmann moments at the reference temperature. The second-moment identity is
+skipped on D2Q5 by design (\cref{Chapter3}); the third and fourth run only on D2Q37.
+Further checks: output shape and dtype; $f^{\mathrm{eq}} = w_i\rho$ at rest;
+\code{moments(equilibrium(rho, u))} returns \code{(rho, u)}; $f^{\mathrm{eq}} > 0$ at this
+Mach number; the default order equals \code{lattice.equilibrium\_order}; order~0 and
+\code{equilibrium\_order + 1} raise \code{ValueError}; and the output is on the device of
+the inputs.
+
+\file{tests/gradcheck/test\_equilibrium\_grad.py} runs in fp64 on D2Q9, D2Q37 and D3Q19
+with $3\times4$ or $2\times3\times3$ grids. \code{torch.autograd.gradcheck} passes for
+\code{moments()} in \code{f} and for \code{equilibrium()} in \code{(rho, u)} jointly, and a
+backward pass through $\sum (f^{\mathrm{eq}})^2$ reaches both inputs with finite gradients.
+A failure here means an in-place operation, a \code{.detach()} or a non-differentiable cast
+has entered the path; it does not test the physics.
+
+\file{tests/unit/test\_lattices.py} additionally asserts that \code{equilibrium\_order} is
+an integer with $1 \le \code{equilibrium\_order}$ and
+$2\,\code{equilibrium\_order} \le \code{isotropy\_order}$ on every lattice, and that a
+subclass violating the bound raises \code{ValueError} at construction.
+
+\section{Streaming checked by the tests}
+
+\file{tests/unit/test\_streaming.py} is parametrised over every implemented lattice and over
+fp32 and fp64, on a $5\times7$ (2D) or $4\times5\times6$ (3D) grid with a seeded positive
+field $f \in [0.5, 1.5)$ of distinct values, so that a misplaced entry is visible. The grid
+exceeds the longest shift on every lattice ($|c_\alpha| \le 3$ on D2Q37), so a wrap is a
+genuine wrap and not a shift by a multiple of the grid. Because streaming is a permutation,
+every comparison is exact (\code{torch.equal}); there are no tolerances.
+
+For \code{stream()}:
+\begin{itemize}[nosep]
+\item output shape, dtype and device match the input; the output is a new tensor and the
+      input is unchanged;
+\item \textbf{push}: for every direction $q$, the value at the origin arrives at
+      $\vc_q \bmod$ grid, and the whole slab equals \code{torch.roll(f[q], shifts[q])};
+\item the single rest population is unchanged;
+\item \textbf{periodic wrap}: for every direction and every axis with a positive shift, the
+      value on the last node of that axis arrives on node $c_\alpha - 1$;
+\item the sorted entries of the output equal the sorted entries of the input (a
+      permutation); rolling every direction back by $-\vc_q$ recovers $f$ exactly; and
+      rolling direction $q$ by $\vc_{\bar{q}}$ also recovers $f_q$, so the \code{opp} table
+      and the shift list agree;
+\item \textbf{conservation} (marker \code{conservation}, fp64): the per-direction sorted
+      slabs match, hence the direction sums, hence the global mass and
+      $\sum_q \vc_q \sum_{\mathbf{x}} f_q$ are exactly unchanged; and on a spatially uniform
+      field streaming is the identity, so \code{moments()} returns identical $\rho$, $\vu$;
+\item a wrong $Q$ or a wrong number of spatial axes raises \code{ValueError} naming the
+      offending quantity; and, with CUDA, the result on the device equals the result on the
+      host.
+\end{itemize}
+The global conservation check sorts before summing because summation order differs between
+the two fields; a last-bit difference in a direct fp32 sum is not a streaming error.
+
+\file{tests/gradcheck/test\_streaming\_grad.py} runs in fp64 on D2Q9, D2Q37 and D3Q19 with
+$3\times4$ or $2\times3\times3$ grids. \code{torch.autograd.gradcheck} passes; the
+vector--Jacobian product equals the upstream gradient streamed with every shift negated,
+exactly, since the Jacobian of a permutation is a permutation matrix; and a five-step
+composed rollout stays differentiable with $\partial \sum f'^2 / \partial f = 2f$. A failure
+here means an in-place write or a non-differentiable op has entered the path.
 
 %----------------------------------------------------------------------------------------
 
-\section{This guide}
+\section{Device utilities}
 
-The guide lives in \file{docs/guide/} of the \code{fluxlb} repository and is mirrored to the
-\code{fluxlb\_guide} repository, which Overleaf syncs. The mirror is a \code{git subtree}:
-\begin{lstlisting}[style=sh]
-git subtree push --prefix=docs/guide guide main    # fluxlb -> fluxlb_guide (then pull in Overleaf)
-git subtree pull --prefix=docs/guide guide main --squash   # Overleaf edits -> fluxlb
-\end{lstlisting}
-Build locally with \code{latexmk -pdf fluxlb-guide.tex}; the bibliography needs \code{biber}.
+\file{tests/unit/test\_gpu.py} covers device resolution and the environment override, both
+branches of \code{accumulation\_dtype}, the query functions, byte formatting, the memory
+no-ops on CPU, \code{track\_memory} on CPU, and \code{Timer}. Three tests carry the
+\code{gpu} marker and run only with CUDA: GPU info fields, peak-memory tracking, and the
+CUDA device summary.
 
-\section{API reference}
+%----------------------------------------------------------------------------------------
 
-The API reference is not part of this guide. Sphinx generates it from the docstrings and
-publishes it, together with the roadmap and this PDF, at
-\url{https://cerg-flux-lab.github.io/fluxlb/}. The split is deliberate: theory and design
-rationale are written once, here; signatures and behaviour are documented once, in the code.
-Docstrings therefore explain physics and intent, not only the signature. \Cref{fig:docs} shows
-the pipeline.
+\section{Current status}
 
-\begin{figure}[h]
-\centering
-\begin{adjustbox}{max width=\linewidth}\input{Figures/fig-docs-pipeline}\end{adjustbox}
-\caption{Documentation pipeline. Two sources with one owner each feed a single site.}
-\label{fig:docs}
-\end{figure}
+\begin{table}[h]
+\centering\small
+\begin{tabular}{@{}lr@{}}
+\toprule
+\code{pytest} (whole repository) & 454 passed, 65 skipped \\
+\code{ruff check}, \code{ruff format --check} & clean \\
+\code{mypy fluxlb} & clean (40 files) \\
+\bottomrule
+\end{tabular}
+\caption{Test and static-check status at the time of writing. Skips are the CUDA-only tests,
+the higher-order isotropy identities on lattices that do not claim them, and the
+higher-order equilibrium moments on lattices below that order.}
+\end{table}
+
+%----------------------------------------------------------------------------------------
+
+\section{Adding a lattice}
+
+\begin{enumerate}[nosep]
+\item Subclass \code{Lattice}; set \code{Q}, \code{D}, \code{isotropy\_order} and
+      \code{equilibrium\_order} $= \lfloor\code{isotropy\_order}/2\rfloor$.
+\item In \code{\_\_init\_\_}, build \code{c} (int64), \code{w} (float64 from exact
+      fractions) and \code{opp} (int64, preferably derived from the velocity list), then call
+      \code{super().\_\_init\_\_(c=c, w=w, opp=opp, cs2=..., dtype=dtype)}.
+\item Wrap hand-laid-out tables in \code{\# fmt: off} / \code{\# fmt: on} so the formatter
+      keeps the shell layout.
+\item State the ordering convention in the docstring; \code{opp} and the boundary code depend
+      on it.
+\item Add the class to \code{LATTICES} in the test file. The isotropy tests will reject a
+      wrong weight or velocity immediately.
+\end{enumerate}

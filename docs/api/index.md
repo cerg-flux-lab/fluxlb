@@ -8,6 +8,8 @@ only the signature, so this reference is meant to be read alongside the user gui
 
 core.gpu
 core.lattices
+core.equilibrium
+core.streaming
 ```
 
 ## Package layout
