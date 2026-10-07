@@ -1,0 +1,101 @@
+# Mirror docs/guide to the fluxlb_guide repository, which Overleaf syncs.
+#
+# Replaces the manual `git subtree push --prefix=docs/guide guide main`. Runs when a
+# pull request touching docs/guide is merged into main; a direct push to main never
+# mirrors, matching the deploy gate in docs.yml. The push is fast-forward only: if the
+# mirror has commits that are not in the split (edits made in Overleaf and never pulled
+# back with `git subtree pull --prefix=docs/guide guide main --squash`), the job fails
+# and says so rather than overwriting them.
+#
+# Credentials: a deploy key on fluxlb_guide with write access, whose private half is the
+# GUIDE_DEPLOY_KEY secret on this repository. No personal token is involved.
+name: Guide mirror
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/guide/**"
+      - ".github/workflows/guide-mirror.yml"
+
+concurrency:
+  group: guide-mirror
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  MIRROR_REPO: git@github.com:cerg-flux-lab/fluxlb_guide.git
+  MIRROR_BRANCH: main
+  PREFIX: docs/guide
+
+jobs:
+  merged-pr:
+    name: Confirm the push is a merged pull request
+    runs-on: ubuntu-latest
+    outputs:
+      merged: ${{ steps.check.outputs.merged }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq '[.[] | select(.merged_at != null and .base.ref == "main")] | length')
+          echo "merged pull requests for ${GITHUB_SHA}: ${count}"
+          if [ "${count}" -gt 0 ]; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "merged=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Not a pull-request merge; skipping the guide mirror."
+          fi
+
+  mirror:
+    name: Push docs/guide to fluxlb_guide
+    needs: merged-pr
+    if: needs.merged-pr.outputs.merged == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # subtree split needs the full history to reproduce prior split ids
+
+      - name: Configure SSH for the mirror
+        env:
+          DEPLOY_KEY: ${{ secrets.GUIDE_DEPLOY_KEY }}
+        run: |
+          if [ -z "${DEPLOY_KEY}" ]; then
+            echo "::error::GUIDE_DEPLOY_KEY secret is not set; see the header of this workflow."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "${DEPLOY_KEY}" > ~/.ssh/guide_deploy_key
+          chmod 600 ~/.ssh/guide_deploy_key
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          echo "GIT_SSH_COMMAND=ssh -i ~/.ssh/guide_deploy_key -o IdentitiesOnly=yes" >> "$GITHUB_ENV"
+
+      - name: Split the guide subtree
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git subtree split --prefix="${PREFIX}" -b guide-split
+          echo "split tip: $(git rev-parse guide-split)"
+
+      - name: Check the mirror has nothing unpulled
+        run: |
+          git remote add mirror "${MIRROR_REPO}"
+          git fetch mirror "${MIRROR_BRANCH}"
+          if git merge-base --is-ancestor "mirror/${MIRROR_BRANCH}" guide-split; then
+            echo "mirror/${MIRROR_BRANCH} is an ancestor of the split: fast-forward push."
+          else
+            echo "::error::fluxlb_guide/${MIRROR_BRANCH} has commits that are not in docs/guide." \
+                 "Pull them back first: git subtree pull --prefix=${PREFIX} guide ${MIRROR_BRANCH} --squash"
+            git log --oneline "guide-split..mirror/${MIRROR_BRANCH}" | head -20
+            exit 1
+          fi
+
+      - name: Push to the mirror
+        run: |
+          git push mirror "guide-split:refs/heads/${MIRROR_BRANCH}"
+          echo "::notice::Mirrored docs/guide at ${GITHUB_SHA} to fluxlb_guide/${MIRROR_BRANCH}."
